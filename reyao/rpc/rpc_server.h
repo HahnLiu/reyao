@@ -6,7 +6,7 @@
 
 #include <google/protobuf/service.h>
 #include <map>
-
+    
 
 namespace reyao {
 namespace rpc {
@@ -24,10 +24,10 @@ class RpcCallBackType : public RpcCallBack {
                   "T must be sub-class of google::protobuf::Message");
 
 public:
-    typedef std::function<MessageSPtr(const std::shared_ptr<T> &)> MessageCallBack;
-    RpcCallBackType(const MessageCallBack &cb) : cb_(cb) {}
-    MessageSPtr onMessage(const MessageSPtr &msg) {
-        std::shared_ptr<T> m = std::static_pointer_cast<T>(msg); // base到derive的转换
+    typedef std::function<MessageSPtr(const std::shared_ptr<T>&)> MessageCallBack;
+    RpcCallBackType(const MessageCallBack& cb): cb_(cb) {}
+    MessageSPtr onMessage(const MessageSPtr& msg) {
+        std::shared_ptr<T> m = std::static_pointer_cast<T>(msg); // down-cast
         return cb_(m);
     }
 
@@ -37,7 +37,8 @@ private:
 
 class RpcServer : public TcpServer {
 public:
-    typedef std::map<const google::protobuf::Descriptor*, std::shared_ptr<RpcCallBack>> HandlerMap;
+    typedef std::map<const google::protobuf::Descriptor*, 
+                     std::shared_ptr<RpcCallBack>> HandlerMap;
     RpcServer(Scheduler *Scheduler);
 
     void handleClient(Socket::SPtr client) override;
