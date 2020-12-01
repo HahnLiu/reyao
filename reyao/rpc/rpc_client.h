@@ -35,11 +35,13 @@ public:
 private:
     template<class T>
     void sendRequire(MessageSPtr req, typename TypeTraits<T>::MessageCallBack cb) {
-        if (!conn_->connect(server_addr)) {
-            LOG_ERROR << "RpcClient sendRequire, cannot conn: " << server_addr.toString() 
+        Socket conn(SOCK_STREAM);
+        conn.socket();
+        if (!conn.connect(serv_addr_)) {
+            LOG_ERROR << "RpcClient sendRequire, cannot conn: " << serv_addr_.toString() 
                       << " error: " << strerror(errno);
         } else {
-            LOG_ERROR << "RpcClient sendRequire, conn: " << server_addr.toString();
+            LOG_ERROR << "RpcClient sendRequire, conn: " << serv_addr_.toString();
         }
 
         ProtobufCodec codec(conn);
@@ -54,9 +56,9 @@ private:
         std::shared_ptr<T> msg = std::static_pointer_cast<T>(rsp); // down-cast
         cb(msg);
 
-        conn_->close();
+        conn.close();
     }
-    Socket::SPtr conn_;
+    const IPv4Address& serv_addr_;
     Scheduler* scheduler_;
 };
 

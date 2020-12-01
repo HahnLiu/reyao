@@ -64,7 +64,7 @@ ErrorMsg::SPtr ProtobufCodec::receive(MessageSPtr& message) {
             if (len > kMaxMessageLen || len < kMinMessageLen) {
                 return std::make_shared<ErrorMsg>(ErrorMsg::ErrorCode::InvalidLength, 
                                                   "invalid length");
-            } else if (ba.getReadSize() == len) {
+            } else if (ba.getReadSize() == static_cast<size_t>(len)) {
                 ErrorMsg::SPtr err_msg(new ErrorMsg(ErrorMsg::ErrorCode::NoError, 
                                        "no error"));
                 ProtobufCodec::Parse(ba.peek(), len, err_msg);

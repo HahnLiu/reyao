@@ -4,10 +4,8 @@ namespace reyao {
 namespace rpc {
 
 RpcClient::RpcClient(const IPv4Address& server_addr, Scheduler* scheduler)
-    : conn_(new Socket(SOCK_STREAM)),
-      scheduler_(scheduler) {
-    conn_->socket();
-}
+    : serv_addr_(server_addr),
+      scheduler_(scheduler) {}
 
 } //namespace rpc
 
