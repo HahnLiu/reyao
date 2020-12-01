@@ -29,6 +29,7 @@ set (LIB_SRC
      stackalloc.cc
      rpc/codec.cc
      rpc/rpc_server.cc
+     rpc/rpc_client.cc
 )
 
 add_library(reyao SHARED ${LIB_SRC})

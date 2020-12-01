@@ -9,7 +9,7 @@ void RpcServer::handleClient(Socket::SPtr client) {
 
     MessageSPtr msg;
     auto err = codec.receive(msg);
-    if (err->eno != ErrorMsg::ErrorCode::NoError) {
+    if (err->eno != ErrorMsg::ErrorCode::NoError || !msg) {
         LOG_ERROR << "RpcServer codec.recevie(msg) error: " << err->estr;
         client->close();
         return;
