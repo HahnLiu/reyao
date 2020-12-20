@@ -27,7 +27,3 @@ install(FILES ${reyao_headers}
         DESTINATION /usr/local/include/reyao)
 install(FILES ${reyao_http_headers}
         DESTINATION /usr/local/include/reyao/http)
-
-# 如果是内部编译，PROJECT_BINARY_DIR在编译发生的当前目录，如果是外部编译，则是在外部编译的目录
-# 在哪里add_library，就在哪里的CMakeLists.txt中设置LIBRARY_OUTPUT_PATH
-set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)  #项目生成态库输出目录

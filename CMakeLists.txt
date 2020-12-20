@@ -49,3 +49,6 @@ string(TOUPPER ${CMAKE_BUILD_TYPE} BUILD_TYPE)
 #添加源文件子目录
 add_subdirectory(reyao)
 
+set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)  #项目生成态库输出目录
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)  #项目的可执行文件输出目录
+

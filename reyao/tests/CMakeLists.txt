@@ -40,7 +40,3 @@ target_link_libraries(http_server_test ${LIBS})
 
 add_executable(http_connection_test http_connection_test.cc)
 target_link_libraries(http_connection_test ${LIBS})
-
-# 如果是内部编译，PROJECT_BINARY_DIR在编译发生的当前目录，如果是外部编译，则是在外部编译的目
-# 在哪里add_executable，就在哪里设置EXECUTABLE_OUTPUT_PATH
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)  #项目的可执行文件输出目录
