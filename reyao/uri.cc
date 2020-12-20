@@ -65,7 +65,7 @@ const std::string& Uri::getPath() const {
     return path_.empty() ? s_default_path : path_;
 }
 
-IPv4Address::UPtr Uri::getAddr() const {
+IPv4Address::SPtr Uri::getAddr() const {
     return IPv4Address::CreateByName(host_.c_str(), port_);
 }
 

@@ -71,7 +71,7 @@ sockaddr_in IPv4Address::GetHostByName(const char* hostname, uint16_t port) {
     return addr;
 }
 
-IPv4Address::UPtr IPv4Address::CreateByName(const char* hostname, uint16_t port) {
+IPv4Address::SPtr IPv4Address::CreateByName(const char* hostname, uint16_t port) {
     sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
@@ -82,8 +82,7 @@ IPv4Address::UPtr IPv4Address::CreateByName(const char* hostname, uint16_t port)
         return nullptr;
     }
     addr.sin_addr = *(in_addr*)(*host->h_addr_list);
-    return std::make_unique<IPv4Address>(addr);
-
+    return std::make_shared<IPv4Address>(addr);
 }
 
 

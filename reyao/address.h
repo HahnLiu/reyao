@@ -16,7 +16,7 @@ namespace reyao {
 
 class IPv4Address {
 public:
-    typedef std::unique_ptr<IPv4Address> UPtr;
+    typedef std::shared_ptr<IPv4Address> SPtr;
     IPv4Address();
     explicit IPv4Address(const sockaddr_in& addr);
     IPv4Address(const char* addr, uint16_t port);
@@ -29,7 +29,7 @@ public:
     std::string toString() const;
 
     static sockaddr_in GetHostByName(const char* hostname, uint16_t port = 0);
-    static IPv4Address::UPtr CreateByName(const char* hostname, uint16_t port = 0);
+    static IPv4Address::SPtr CreateByName(const char* hostname, uint16_t port = 0);
 
 
 private:

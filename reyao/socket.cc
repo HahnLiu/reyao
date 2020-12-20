@@ -23,8 +23,8 @@ Socket::~Socket() {
     }
 }
 
-IPv4Address::UPtr Socket::getLocalAddr() const { 
-    IPv4Address::UPtr addr = std::make_unique<IPv4Address>();
+IPv4Address::SPtr Socket::getLocalAddr() const { 
+    IPv4Address::SPtr addr = std::make_shared<IPv4Address>();
     socklen_t addrlen = addr->getAddrLen();
     if (::getsockname(sockfd_, addr->getAddr(), &addrlen)) {
         LOG_ERROR << "getsockname(" << sockfd_
@@ -34,8 +34,8 @@ IPv4Address::UPtr Socket::getLocalAddr() const {
     return addr;
 }
 
-IPv4Address::UPtr Socket::getPeerAddr() const { 
-    IPv4Address::UPtr addr = std::make_unique<IPv4Address>();
+IPv4Address::SPtr Socket::getPeerAddr() const { 
+    IPv4Address::SPtr addr = std::make_shared<IPv4Address>();
     socklen_t addrlen = addr->getAddrLen();
     if (::getpeername(sockfd_, addr->getAddr(), &addrlen)) {
         LOG_ERROR << "getpeername(" << sockfd_

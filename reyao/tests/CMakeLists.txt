@@ -1,6 +1,6 @@
+# target_link_libraries引入可执行文件的链接库
 add_executable(thread_test thread_test.cc)
 target_link_libraries(thread_test ${LIBS})
-# # target_link_libraries引入链接库
 
 add_executable(asynclog_test asynclog_test.cc)
 target_link_libraries(asynclog_test ${LIBS})

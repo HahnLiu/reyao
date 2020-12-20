@@ -117,7 +117,7 @@ HttpResult::SPtr HttpConnection::DoRequest(HttpMethod method,
 HttpResult::SPtr HttpConnection::DoRequest(HttpRequest* req,
                                            Uri::SPtr uri,
                                            uint64_t timeout) {
-    IPv4Address::UPtr addr = uri->getAddr();
+    IPv4Address::SPtr addr = uri->getAddr();
     if (!addr) {
         return std::make_shared<HttpResult>(HttpResult::Error::INVALID_HOST, 
                                             nullptr, "invalid host:" + uri->getHost());

@@ -23,7 +23,7 @@ public:
     const std::string& getPath() const;
     const std::string& getQuery() const { return query_; }
     const std::string& getFragment() const { return fragment_; }
-    IPv4Address::UPtr getAddr() const;
+    IPv4Address::SPtr getAddr() const;
 
     void setScheme(const std::string& scheme) { scheme_ = scheme; }
     void setUserifo(const std::string& userifo) { userifo_ = userifo; }

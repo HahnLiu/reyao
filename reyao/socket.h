@@ -21,8 +21,8 @@ public:
     int getType() const { return type_;}
     int getProtocol() const { return protocol_; }
     int getSockfd() const { return sockfd_; }
-    IPv4Address::UPtr getLocalAddr() const;
-    IPv4Address::UPtr getPeerAddr() const;
+    IPv4Address::SPtr getLocalAddr() const;
+    IPv4Address::SPtr getPeerAddr() const;
     bool isConnected() const { return connected_; }
     bool isValid() const { return sockfd_ != -1; }
     std::string toString() const;
