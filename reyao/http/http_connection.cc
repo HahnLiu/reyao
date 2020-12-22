@@ -122,8 +122,7 @@ HttpResult::SPtr HttpConnection::DoRequest(HttpRequest* req,
         return std::make_shared<HttpResult>(HttpResult::Error::INVALID_HOST, 
                                             nullptr, "invalid host:" + uri->getHost());
     }
-    Socket::SPtr sock(new Socket(SOCK_STREAM));
-    sock->socket();
+    Socket::SPtr sock = Socket::CreateTcp();
     
     sock->setRecvTimeout(timeout);
     if (!sock->connect(*addr)) {

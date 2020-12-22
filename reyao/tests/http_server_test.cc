@@ -34,8 +34,8 @@ int main(int argc, char** argv) {
         num = atoi(argv[1]);
     }
     Scheduler sh(num);
-    HttpServer server(&sh, true);
     IPv4Address addr("0.0.0.0", 8010);
+    HttpServer server(&sh, addr, true);
     auto dispatch = server.getDispatch();
     dispatch->addServlet("/hello", [](const HttpRequest& req,
                                       HttpResponse* rsp,
@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
         return 0;           
     });
 
-    if (server.bind(addr)) {   
+    if (server.listen()) {   
         server.start();
     } else {
         LOG_ERROR << "bind addr=" << addr.toString() 

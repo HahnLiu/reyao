@@ -10,10 +10,11 @@
 
 namespace reyao {
 
-Socket::Socket(int type, int protocol)
+Socket::Socket(int type, int family, int protocol)
     : type_(type),
+      family_(family),
       protocol_(protocol) {
-
+    newSock();
 }
 
 Socket::~Socket() {
@@ -49,11 +50,11 @@ std::string Socket::toString() const {
     std::stringstream ss;
     ss << "sockfd=" << sockfd_ << " type=" << type_ 
         << " protocol=" << protocol_;
-    if (listening_) {
+    if (state_ == State::LISTEN) {
         ss << " state=LISTEN";
         ss << " local=" << getLocalAddr()->toString();
         return ss.str();
-    } else if (connected_) {
+    } else if (state_ == State::CONNECTED) {
         ss << " state=CONNECTED";
         ss << " local=" << getLocalAddr()->toString()
            << " peer=" << getPeerAddr()->toString();
@@ -128,12 +129,16 @@ bool Socket::setOption(int level, int option, const void *result, socklen_t len)
     }
 }
 
+//
+// @brief init connected Socket
+//
 bool Socket::init(int sockfd) {
     auto fdctx = g_fdmanager->getFdContext(sockfd);
-    if (fdctx && fdctx->isSocketFd() &&
+    if (fdctx && 
+        fdctx->isSocketFd() &&
         !fdctx->isClose()) {
         sockfd_ = sockfd;
-        connected_ = true;
+        state_ = State::CONNECTED;
         setReuseAddr();
         setNoDelay();
         return true;
@@ -153,7 +158,7 @@ void Socket::setNoDelay() {
     }
 }
 
-void Socket::socket() {
+void Socket::newSock() {
     // LOG_DEBUG << "socket";
     sockfd_ = ::socket(AF_INET, type_, protocol_);
     if (sockfd_ == -1) {
@@ -168,23 +173,33 @@ void Socket::socket() {
 
 bool Socket::bind(const IPv4Address& addr) {
     if (!isValid()) {
-        socket();
-    }
-    if (::bind(sockfd_, addr.getAddr(), addr.getAddrLen())) {
-        LOG_ERROR << "error to bind " << addr.toString()
-                  << " error=" << strerror(errno);
+        newSock();
+        if (!isValid()) {
+            return false;
+        }
+        if (::bind(sockfd_, addr.getAddr(), addr.getAddrLen())) {
+            LOG_ERROR << "error to bind " << addr.toString()
+                    << " error=" << strerror(errno);
         return false;
+        }
+    } else {
+        LOG_WARN << "already bind " << toString();
     }
+    
     return true;
 }
 
 bool Socket::listen(int backlog) {
+    if (!isValid()) {
+        LOG_ERROR << "sock=-1";
+        return false;
+    }
     if (::listen(sockfd_, backlog)) {
         LOG_ERROR << "error to listen " << getLocalAddr()->toString()
                   << " error=" << strerror(errno);
         return false;
     }
-    listening_ = true;
+    state_ = State::LISTEN;
     return true;
 }
 
@@ -204,9 +219,10 @@ Socket::SPtr Socket::accept() {
 
 bool Socket::close() {
     if (sockfd_ == -1 && !isConnected()) {
+        LOG_WARN << "repeated close sockfd" << sockfd_;
         return true;
     }
-    connected_ = false;
+    state_ = State::CLOSE;
     if (sockfd_ != -1) {
         ::close(sockfd_);
         sockfd_ = -1;
@@ -216,7 +232,7 @@ bool Socket::close() {
 
 bool Socket::connect(const IPv4Address& addr, int64_t timeout) {
     if (!isValid()) {
-        socket();
+        newSock();
         // LOG_DEBUG << "connectfd:" << sockfd_;
         // int flag = fcntl_origin(sockfd_, F_GETFL, 0);
     }
@@ -238,7 +254,7 @@ bool Socket::connect(const IPv4Address& addr, int64_t timeout) {
             return false; 
         }
     }
-    connected_ = true;
+    state_ = State::CONNECTED;
     return true;
 }
 
@@ -331,6 +347,11 @@ bool Socket::cancelWrite() {
 
 bool Socket::cancelAll() {
     return Worker::HandleAllEvent(sockfd_);
+}
+
+Socket::SPtr Socket::CreateTcp() {
+    Socket::SPtr sock(new Socket(AF_INET, SOCK_STREAM, 0));
+    return sock;
 }
     
 } //namespace reyao

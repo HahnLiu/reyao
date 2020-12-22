@@ -11,7 +11,7 @@ void test() {
         LOG_ERROR << "addr errno=" << strerror(errno);
         return;
     }
-    Socket::SPtr sock(new Socket(SOCK_STREAM));
+    Socket::SPtr sock = Socket::CreateTcp();
     if (!sock->connect(*addr)) {
         LOG_ERROR << "connect addr:" << addr->toString()
                   << " error:" << strerror(errno);

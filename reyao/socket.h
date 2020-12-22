@@ -14,16 +14,24 @@ namespace reyao {
 class Socket : public NoCopyable,
                public std::enable_shared_from_this<Socket> {
 public:
+    enum State {
+        INIT,
+        LISTEN,
+        CONNECTED,
+        CLOSE
+    };
+
     typedef std::shared_ptr<Socket> SPtr;
-    Socket(int type, int protocol = 0);
+    Socket(int type, int family, int protocol = 0);
     ~Socket();
 
     int getType() const { return type_;}
+    int getFamily() const { return family_; }
     int getProtocol() const { return protocol_; }
     int getSockfd() const { return sockfd_; }
     IPv4Address::SPtr getLocalAddr() const;
     IPv4Address::SPtr getPeerAddr() const;
-    bool isConnected() const { return connected_; }
+    bool isConnected() const { return state_ == State::CONNECTED; }
     bool isValid() const { return sockfd_ != -1; }
     std::string toString() const;
     int64_t getRecvTimeout() const;
@@ -48,7 +56,7 @@ public:
     bool init(int sockfd);
     void setReuseAddr();
     void setNoDelay();
-    void socket();
+    void newSock();
     bool bind(const IPv4Address& addr);
     bool listen(int backlog = SOMAXCONN);
     Socket::SPtr accept();
@@ -67,12 +75,14 @@ public:
     bool cancelWrite();
     bool cancelAll();
 
+    static Socket::SPtr CreateTcp();
+
 private:
     int type_ = 0;
+    int family_ = 0;
     int protocol_ = 0;
     int sockfd_ = -1;
-    bool listening_ = false;
-    bool connected_ = false;
+    State state_ = State::INIT;
 };
 
 } //namespace reyao

@@ -3,8 +3,9 @@
 namespace reyao {
 
 HttpServer::HttpServer(Scheduler* scheduler,
+                       const IPv4Address& addr,
                        bool keep_alive) 
-    : TcpServer(scheduler, "HttpServer"),
+    : TcpServer(scheduler, addr, "HttpServer"),
       keep_alive_(keep_alive) {
     dispatch_.reset(new ServletDispatch); //TODO: server name
 }

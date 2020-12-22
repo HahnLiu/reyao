@@ -10,8 +10,8 @@ using namespace reyao;
 class EchoServer : public TcpServer {
 public:
     typedef std::shared_ptr<EchoServer> SPtr;
-    EchoServer(Scheduler* scheduler)
-        : TcpServer(scheduler, "echo_server") {}
+    EchoServer(Scheduler* scheduler, const IPv4Address& addr)
+        : TcpServer(scheduler, addr, "echo_server") {}
 
 
     void handleClient(Socket::SPtr client) override;
@@ -30,11 +30,11 @@ void EchoServer::handleClient(Socket::SPtr client) {
 
 void test() {
     // g_logger->setLevel(LogLevel::INFO);
-    Scheduler scheduler(0, "scheduler");
-    EchoServer server(&scheduler);
     IPv4Address addr("127.0.0.1", 30000);
+    Scheduler scheduler(0, "scheduler");
+    EchoServer server(&scheduler, addr);
     
-    if (server.bind(addr)) {
+    if (server.listen()) {
         server.start();
     }
     

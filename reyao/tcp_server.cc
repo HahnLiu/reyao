@@ -7,29 +7,30 @@ namespace reyao {
 static uint64_t s_max_recv_timeout = 30 * 1000;
 
 TcpServer::TcpServer(Scheduler* scheduler, 
+                     const IPv4Address& addr,
                      const std::string& name)
     : scheduler_(scheduler),
+      addr_(addr),
       name_(name),
       stopped_(true),
       recv_timeout_(s_max_recv_timeout) {
-    listen_sock_.reset(new Socket(SOCK_STREAM, 0));
-    listen_sock_->socket();
+    listen_sock_.reset(new Socket(AF_INET, SOCK_STREAM, 0));
 }
 
 TcpServer::~TcpServer() {
     listen_sock_->close();
 }
 
-bool TcpServer::bind(const IPv4Address& addr) {
-    int rt = listen_sock_->bind(addr);
+bool TcpServer::listen() {
+    int rt = listen_sock_->bind(addr_);
     if (!rt) {
-        LOG_ERROR << "bind error addr=" << addr.toString()
+        LOG_ERROR << "bind error addr=" << addr_.toString()
                   << " error=" << strerror(errno);
         return false;
     }
     rt = listen_sock_->listen();
     if (!rt) {
-        LOG_ERROR << "listen error addr=" << addr.toString()
+        LOG_ERROR << "listen error addr=" << addr_.toString()
                   << " error=" << strerror(errno);       
         return false;
     }

@@ -9,8 +9,7 @@ using namespace reyao;
 
 void server() {
     g_logger->setLevel(LogLevel::INFO);
-    Socket::SPtr listen_sock(new Socket(SOCK_STREAM));
-    listen_sock->socket();
+    Socket::SPtr listen_sock = Socket::CreateTcp();
     IPv4Address ipv4_addr("127.0.0.1", 30000);
     listen_sock->bind(ipv4_addr);
     listen_sock->listen();
@@ -36,7 +35,7 @@ void server() {
 
 void client() {
     g_logger->setLevel(LogLevel::INFO);
-    Socket::SPtr sock(new Socket(SOCK_STREAM));
+    Socket::SPtr sock = Socket::CreateTcp();
     IPv4Address addr("127.0.0.1", 30000);
     if (sock->connect(addr, 2000)) {
         LOG_INFO << sock->toString();

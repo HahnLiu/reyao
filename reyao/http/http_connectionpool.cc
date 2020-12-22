@@ -51,8 +51,7 @@ HttpConnection::SPtr HttpConnectionPool::getConnection() {
             LOG_ERROR << "getAddrByHost:" << host_;
             return nullptr;
         }
-        Socket::SPtr sock(new Socket(SOCK_STREAM));
-        sock->socket();
+        Socket::SPtr sock = Socket::CreateTcp();
         if (!sock->connect(*addr)) {
             LOG_ERROR << "connect fail:" << addr->toString();
             return nullptr;
