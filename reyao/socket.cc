@@ -210,7 +210,7 @@ Socket::SPtr Socket::accept() {
                   << ") errno=" << strerror(errno);
         return nullptr; 
     }
-    Socket::SPtr new_conn(new Socket(type_, protocol_));
+    Socket::SPtr new_conn(new Socket(type_, family_, protocol_));
     if (new_conn->init(new_conn_fd)) {
         return new_conn;
     }

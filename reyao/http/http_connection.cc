@@ -140,14 +140,14 @@ HttpResult::SPtr HttpConnection::DoRequest(HttpRequest* req,
         return std::make_shared<HttpResult>(HttpResult::Error::SOCKET_ERROR, 
                                             nullptr, "socket error:" + std::string(strerror(errno)));
     }
-    HttpResponse rsp;
-    if (!connect->recvResponse(&rsp)) { //TODO: maybe recv an invalid response message
+    HttpResponse::SPtr rsp(new HttpResponse);
+    if (!connect->recvResponse(rsp.get())) { //TODO: maybe recv an invalid response message
         return std::make_shared<HttpResult>(HttpResult::Error::TIMEOUT, 
                                             nullptr, "recv timout out from addr:" + addr->toString()
                                             + "timeout:" + std::to_string(timeout));
     }
 
-    return std::make_shared<HttpResult>(HttpResult::Error::OK, &rsp, "ok");
+    return std::make_shared<HttpResult>(HttpResult::Error::OK, rsp, "ok");
 }
 
 

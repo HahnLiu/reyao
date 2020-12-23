@@ -6,7 +6,7 @@ using namespace reyao;
 
 void test() {
     g_logger->setLevel(LogLevel::INFO);
-    auto addr = IPv4Address::CreateByName("www.baidu.com", 80);
+    auto addr = IPv4Address::CreateByName("http://www.sylar.top/blog/", 80);
     if (!addr) {
         LOG_ERROR << "addr errno=" << strerror(errno);
         return;
@@ -45,5 +45,6 @@ void test_chunk() {
 int main(int argc, char** argv) {
     Scheduler sh(1);
     sh.addTask(test_chunk);
+    // sh.addTask(test);
     return 0;
 }

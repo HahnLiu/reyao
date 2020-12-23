@@ -18,12 +18,12 @@ void log_test() {
 	std::vector<Thread::SPtr> threads;
 	struct timeval s, e;
 	gettimeofday(&s, nullptr);
-	for (int i = 0; i < 3; i++)
+	for (int i = 0; i < 5; i++)
 	{
 		Thread::SPtr t(new Thread([]() {
 			for (int i = 0; i < 10000000; i++) {	
-				LOG_DEBUG << "hellohellohellohellohello";
-				total += 50;
+				LOG_DEBUG << "hellohellohellohellohellohellohellohellohellohello";
+				total += 100;
 				// LOG_DEBUG << "helloworld";
 				// total += 10;
 			}

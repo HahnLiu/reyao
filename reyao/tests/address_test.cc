@@ -13,19 +13,24 @@ void ipv4_test() {
     LOG_INFO << addr.toString();
 }
 
-void getHostName() {
+void getHostName(const char* addr) {
     //TODO: may block
     // const sockaddr_in& addr = IPv4Address::GetHostByName("www.baidu.com", 80);
     // IPv4Address ipaddr(addr);
-    auto ipaddr = IPv4Address::CreateByName("www.sylarrrrr.com", 80);
+    auto ipaddr = IPv4Address::CreateByName(addr, 80);
     LOG_INFO << ipaddr->toString();
     Worker::GetWorker()->getScheduler()->stop();
 }
 
 
 int main(int argc, char** argv) {
+    if (argc != 2) {
+        printf("usage: ./address_test addr");
+    }
+
     Scheduler sh(1);
-    sh.addTask(getHostName);
+    sh.addTask(std::bind(getHostName, argv[1]));
     sh.start();
+    // getHostName();
     return 0;
 }

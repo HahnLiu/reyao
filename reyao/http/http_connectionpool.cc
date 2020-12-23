@@ -174,15 +174,15 @@ HttpResult::SPtr HttpConnectionPool::doRequest(HttpRequest* req,
         return std::make_shared<HttpResult>(HttpResult::Error::SOCKET_ERROR, 
                                             nullptr, "socket error:" + std::string(strerror(errno)));
     }
-    HttpResponse rsp;
-    if (!conn->recvResponse(&rsp)) { //TODO: maybe recv an invalid response message
+    HttpResponse::SPtr rsp(new HttpResponse);
+    if (!conn->recvResponse(rsp.get())) { //TODO: maybe recv an invalid response message
         return std::make_shared<HttpResult>(HttpResult::Error::TIMEOUT, 
                                             nullptr, "recv timout out from addr:" 
                                             + sock->getPeerAddr()->toString()
                                             + "timeout:" + std::to_string(timeout));
     }
 
-    return std::make_shared<HttpResult>(HttpResult::Error::OK, &rsp, "ok");
+    return std::make_shared<HttpResult>(HttpResult::Error::OK, rsp, "ok");
 }
 
 //TODO:

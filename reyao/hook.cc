@@ -211,10 +211,12 @@ int nanosleep(const struct timespec* req, struct timespec* rem) {
 }
 
 int socket(int domain, int type, int protocol) {
+    LOG_DEBUG << "in socket";
     if (!reyao::t_hook_enable) {
         return socket_origin(domain, type, protocol);
     }
     int fd = socket_origin(domain, type, protocol);
+    LOG_DEBUG << "in socket fd = " << fd;
     if (fd == -1) {
         return fd;
     }
@@ -308,6 +310,7 @@ int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
 }
 
 int close(int fd) {
+    LOG_DEBUG << "in close";
     if (!reyao::t_hook_enable) {
         return close_origin(fd);
     }

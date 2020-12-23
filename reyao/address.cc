@@ -63,8 +63,9 @@ sockaddr_in IPv4Address::GetHostByName(const char* hostname, uint16_t port) {
     addr.sin_family = AF_INET;
     addr.sin_port = byteSwapOnLittleEndian(port);
     hostent* host = gethostbyname(hostname);
-    if (*host->h_addr_list == nullptr) {
-        LOG_ERROR << "gethostbyname(" << hostname << ")";
+    if (host== nullptr) {
+        LOG_ERROR << "gethostbyname(" << hostname << ")" 
+                  << "err " << strerror(errno);
         return addr;
     }
     addr.sin_addr = *(in_addr*)(*host->h_addr_list);
@@ -77,9 +78,10 @@ IPv4Address::SPtr IPv4Address::CreateByName(const char* hostname, uint16_t port)
     addr.sin_family = AF_INET;
     addr.sin_port = byteSwapOnLittleEndian(port);
     hostent* host = gethostbyname(hostname);
-    if (*host->h_addr_list == nullptr) {
-        LOG_ERROR << "gethostbyname(" << hostname << ")";
-        return nullptr;
+    if (host== nullptr) {
+        LOG_ERROR << "gethostbyname(" << hostname << ")" 
+                  << " host not fount";
+        return std::make_shared<IPv4Address>("0.0.0.0", 0);
     }
     addr.sin_addr = *(in_addr*)(*host->h_addr_list);
     return std::make_shared<IPv4Address>(addr);

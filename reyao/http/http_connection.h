@@ -28,7 +28,7 @@ struct HttpResult {
     };
 
 
-    HttpResult(Error res, HttpResponse* rsp, const std::string& err)
+    HttpResult(Error res, HttpResponse::SPtr rsp, const std::string& err)
         : result(res),
           response(rsp),
           error(err) {}
