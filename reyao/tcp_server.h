@@ -16,7 +16,7 @@ public:
               const std::string& name = "tcp_server");
     virtual ~TcpServer();
 
-    virtual bool listen();
+    virtual void listenAndAccpet();
     virtual void start();
 
     std::string getName() const { return name_; }

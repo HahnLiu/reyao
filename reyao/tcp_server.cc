@@ -21,29 +21,28 @@ TcpServer::~TcpServer() {
     listen_sock_->close();
 }
 
-bool TcpServer::listen() {
+void TcpServer::listenAndAccpet() {
     int rt = listen_sock_->bind(addr_);
     if (!rt) {
         LOG_ERROR << "bind error addr=" << addr_.toString()
                   << " error=" << strerror(errno);
-        return false;
     }
     rt = listen_sock_->listen();
     if (!rt) {
         LOG_ERROR << "listen error addr=" << addr_.toString()
                   << " error=" << strerror(errno);       
-        return false;
     }
     LOG_INFO << "listen_sock=" << listen_sock_->toString();
-    return true;
-}
 
+    accept();
+}
+// TODO: combine TcpServer::listen to start
 void TcpServer::start() {
     if (!stopped_) {
         return;
     }
     stopped_ = false;
-    scheduler_->getMainWorker()->addTask(std::bind(&TcpServer::accept,
+    scheduler_->getMainWorker()->addTask(std::bind(&TcpServer::listenAndAccpet,
                                          this));
 }
 

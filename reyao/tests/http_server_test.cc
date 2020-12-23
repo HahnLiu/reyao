@@ -46,13 +46,8 @@ int main(int argc, char** argv) {
         return 0;           
     });
 
-    if (server.listen()) {   
-        server.start();
-    } else {
-        LOG_ERROR << "bind addr=" << addr.toString() 
-                  << " error=" << strerror(errno);
-    }
 
+    server.start();
     sh.start();
     return 0;
 }

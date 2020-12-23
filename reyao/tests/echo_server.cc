@@ -34,10 +34,7 @@ void test() {
     Scheduler scheduler(0, "scheduler");
     EchoServer server(&scheduler, addr);
     
-    if (server.listen()) {
-        server.start();
-    }
-    
+    server.start();
     scheduler.start();
 }
 
