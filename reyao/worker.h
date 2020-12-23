@@ -107,7 +107,6 @@ private:
     template<typename CoroutineOrFunc>
     bool addTaskNoLock(CoroutineOrFunc cf) {
         bool need_notify = tasks_.empty() || idle_;
-        LOG_WARN << "add task";
         Task task(cf);
         if (task.func || task.co) {
             tasks_.push_back(task);

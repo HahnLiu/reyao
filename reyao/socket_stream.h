@@ -11,7 +11,7 @@ namespace reyao {
 class SocketStream {
 public:
     typedef std::shared_ptr<SocketStream> SPtr;
-    SocketStream(Socket::SPtr sock, bool owner = true);
+    SocketStream(Socket::SPtr sock, bool owner = false);
     ~SocketStream();
 
     int read(void* buf, size_t size);

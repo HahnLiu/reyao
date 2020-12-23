@@ -25,10 +25,9 @@ public:
 
     template<typename CoroutineOrFunc>
     void addTask(CoroutineOrFunc cf, int t = -1) {
-        // LOG_DEBUG << "add a task";
         if (t != -1) {
             if (worker_map_.find(t) == worker_map_.end()) {
-                LOG_ERROR << "addtask to " << t; 
+                LOG_ERROR << "addTask to invalid thread " << t;
                 return;
             }
             auto worker = worker_map_[t];

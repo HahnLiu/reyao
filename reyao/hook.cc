@@ -211,12 +211,10 @@ int nanosleep(const struct timespec* req, struct timespec* rem) {
 }
 
 int socket(int domain, int type, int protocol) {
-    LOG_DEBUG << "in socket";
     if (!reyao::t_hook_enable) {
         return socket_origin(domain, type, protocol);
     }
     int fd = socket_origin(domain, type, protocol);
-    LOG_DEBUG << "in socket fd = " << fd;
     if (fd == -1) {
         return fd;
     }
@@ -301,8 +299,7 @@ int connect(int sockfd, const struct sockaddr* addr,
 
 int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
     int fd = reyao::do_io(sockfd, accept_origin, "accept", EPOLLIN, 
-                        SO_RCVTIMEO, addr, addrlen);
-    // LOG_DEBUG << "accept fd=" << fd;
+                          SO_RCVTIMEO, addr, addrlen);
     if (fd >= 0) {
         g_fdmanager->addFd(fd);
     }
@@ -310,7 +307,6 @@ int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
 }
 
 int close(int fd) {
-    LOG_DEBUG << "in close";
     if (!reyao::t_hook_enable) {
         return close_origin(fd);
     }
@@ -318,7 +314,6 @@ int close(int fd) {
     auto fdctx = g_fdmanager->getFdContext(fd);
     if (fdctx) {
         reyao::Worker::HandleAllEvent(fd);
-        // LOG_DEBUG << "del fd=" << fd; 
         g_fdmanager->delFd(fd);
     }
     return close_origin(fd);

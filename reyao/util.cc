@@ -24,7 +24,6 @@ int HexToDec(std::string hex) {
             return -1;
         }
     }
-    LOG_INFO << "Hex hex:" << hex << " to " << res;
     return res;
 }
 

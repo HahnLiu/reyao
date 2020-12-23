@@ -11,10 +11,6 @@ Scheduler::Scheduler(int worker_num,
       name_(name),
       worker_num_(worker_num),
       index_(0) {
-    
-    //TODO:
-    // LOG_DEBUG << "set hook";
-    set_hook_enable(true);
 
     worker_map_[Thread::GetThreadId()] = &main_worker_;
     if (worker_num_ != 0) {

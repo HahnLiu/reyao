@@ -14,22 +14,17 @@ Socket::Socket(int type, int family, int protocol)
     : type_(type),
       family_(family),
       protocol_(protocol) {
-    newSock();
+    // newSock();
 }
 
 Socket::~Socket() {
-    if (!close()) {
-        LOG_ERROR << "Socket::close" << "errno="
-                  << strerror(errno);
-    }
+    close();
 }
 
 IPv4Address::SPtr Socket::getLocalAddr() const { 
     IPv4Address::SPtr addr = std::make_shared<IPv4Address>();
     socklen_t addrlen = addr->getAddrLen();
     if (::getsockname(sockfd_, addr->getAddr(), &addrlen)) {
-        LOG_ERROR << "getsockname(" << sockfd_
-                  << ") error=" << strerror(errno);
         return nullptr;
     }
     return addr;
@@ -39,8 +34,6 @@ IPv4Address::SPtr Socket::getPeerAddr() const {
     IPv4Address::SPtr addr = std::make_shared<IPv4Address>();
     socklen_t addrlen = addr->getAddrLen();
     if (::getpeername(sockfd_, addr->getAddr(), &addrlen)) {
-        LOG_ERROR << "getpeername(" << sockfd_
-                  << ") error=" << strerror(errno);
         return nullptr;
     }
     return addr;
@@ -147,13 +140,11 @@ bool Socket::init(int sockfd) {
 }
 
 void Socket::setReuseAddr() {
-    LOG_DEBUG << "set reuse addr";
     int val = 1;
     setOption(SOL_SOCKET, SO_REUSEADDR, val);
 }
 
 void Socket::setNoDelay() {
-    LOG_DEBUG << "set no delay";
     int val = 1;
     if (type_ == SOCK_STREAM) {
         setOption(IPPROTO_TCP, TCP_NODELAY, val);
@@ -161,11 +152,9 @@ void Socket::setNoDelay() {
 }
 
 void Socket::newSock() {
-    // LOG_DEBUG << "socket";
     sockfd_ = ::socket(type_, family_, protocol_);
     if (sockfd_ == -1) {
-        LOG_ERROR << "socket(" << type_ << ", "
-                  << protocol_ << ")" << "error=" 
+        LOG_ERROR << "newSock error=" 
                   << strerror(errno);
     } else {
         // FIXME:
@@ -182,8 +171,6 @@ bool Socket::bind(const IPv4Address& addr) {
         }
     }
     if (::bind(sockfd_, addr.getAddr(), addr.getAddrLen())) {
-            LOG_ERROR << "error to bind " << addr.toString()
-                      << " error=" << strerror(errno);
         return false;
     }
     return true;
@@ -191,12 +178,10 @@ bool Socket::bind(const IPv4Address& addr) {
 
 bool Socket::listen(int backlog) {
     if (!isValid()) {
-        LOG_ERROR << "sock=-1";
+        LOG_ERROR << "listen invalid socket";
         return false;
     }
     if (::listen(sockfd_, backlog)) {
-        LOG_ERROR << "error to listen " << getLocalAddr()->toString()
-                  << " error=" << strerror(errno);
         return false;
     }
     state_ = State::LISTEN;
@@ -206,8 +191,6 @@ bool Socket::listen(int backlog) {
 Socket::SPtr Socket::accept() {
     int new_conn_fd = ::accept(sockfd_, nullptr, nullptr);
     if (new_conn_fd == -1) {
-        LOG_ERROR << "accept(" << sockfd_
-                  << ") errno=" << strerror(errno);
         return nullptr; 
     }
     Socket::SPtr new_conn(new Socket(type_, family_, protocol_));
@@ -218,34 +201,29 @@ Socket::SPtr Socket::accept() {
 }
 
 bool Socket::close() {
-    state_ = State::CLOSE;
-    if (sockfd_ != -1) {
-        ::close(sockfd_);
-        sockfd_ = -1;
+    if (state_ == State::CLOSE && sockfd_ == -1) {
+        return true;
     }
+    ::close(sockfd_);
+    state_ = State::CLOSE;
+    sockfd_ = -1;
     return true;
 }
 
 bool Socket::connect(const IPv4Address& addr, int64_t timeout) {
     if (!isValid()) {
         newSock();
-        // LOG_DEBUG << "connectfd:" << sockfd_;
-        // int flag = fcntl_origin(sockfd_, F_GETFL, 0);
     }
 
     if (timeout == -1) {
         if (::connect(sockfd_, addr.getAddr(), addr.getAddrLen())) {
-            LOG_ERROR << "error to connect " << addr.toString()
-                      << " error=" << strerror(errno);
             close();
             return false;
         }
     } else {
         if (::connect_with_timeout(sockfd_, addr.getAddr(), 
                                    addr.getAddrLen(), timeout)) {
-            LOG_ERROR << "error to connect " << addr.toString()
-                      << " timeout=" << timeout << "ms"
-                      << " error=" << strerror(errno);      
+  
             close();
             return false; 
         }

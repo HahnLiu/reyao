@@ -9,8 +9,8 @@ TcpClient::TcpClient(Scheduler* sche, const IPv4Address& addr)
       addr_(addr) {}
 
 void TcpClient::start() {
-    conn_ = Socket::CreateTcp();
     sche_->addTask([this]() {
+        conn_ = Socket::CreateTcp();
         if (conn_->connect(addr_, kConnectMaxTimeOut)) {
             handleConnect();
         } else {

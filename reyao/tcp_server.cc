@@ -1,4 +1,5 @@
 #include "reyao/tcp_server.h"
+#include "reyao/hook.h"
 
 #include <assert.h>
 
@@ -14,7 +15,6 @@ TcpServer::TcpServer(Scheduler* scheduler,
       name_(name),
       stopped_(true),
       recv_timeout_(s_max_recv_timeout) {
-    listen_sock_ = Socket::CreateTcp();
 }
 
 TcpServer::~TcpServer() {
@@ -22,6 +22,7 @@ TcpServer::~TcpServer() {
 }
 
 void TcpServer::listenAndAccpet() {
+    listen_sock_ = Socket::CreateTcp();
     int rt = listen_sock_->bind(addr_);
     if (!rt) {
         LOG_ERROR << "bind error addr=" << addr_.toString()
@@ -33,7 +34,7 @@ void TcpServer::listenAndAccpet() {
                   << " error=" << strerror(errno);       
     }
     LOG_INFO << "listen_sock=" << listen_sock_->toString();
-
+    LOG_INFO << "is_hook " << (is_hook_enable() ? true : false);
     accept();
 }
 // TODO: combine TcpServer::listen to start

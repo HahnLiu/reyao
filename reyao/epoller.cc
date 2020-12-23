@@ -206,7 +206,6 @@ void Epoller::wait(epoll_event* events, int maxcnt, int timeout) {
             }
             // LOG_DEBUG << "epoll_wait " << timeout << " ms";
             rt = epoll_wait(epfd_, events, maxcnt, timeout);
-            LOG_WARN<< "rt=" << rt;
             if (rt < 0 && errno == EINTR) {
                 continue;
             } else {
