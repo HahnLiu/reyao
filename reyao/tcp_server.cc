@@ -14,7 +14,7 @@ TcpServer::TcpServer(Scheduler* scheduler,
       name_(name),
       stopped_(true),
       recv_timeout_(s_max_recv_timeout) {
-    listen_sock_.reset(new Socket(AF_INET, SOCK_STREAM, 0));
+    listen_sock_ = Socket::CreateTcp();
 }
 
 TcpServer::~TcpServer() {

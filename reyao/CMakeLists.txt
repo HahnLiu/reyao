@@ -27,3 +27,5 @@ install(FILES ${reyao_headers}
         DESTINATION /usr/local/include/reyao)
 install(FILES ${reyao_http_headers}
         DESTINATION /usr/local/include/reyao/http)
+
+        set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)  #项目生成态库输出目录

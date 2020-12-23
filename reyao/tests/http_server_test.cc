@@ -28,7 +28,7 @@ using namespace reyao;
 // }
 
 int main(int argc, char** argv) {
-    g_logger->setLevel(LogLevel::FATAL);
+    g_logger->setLevel(LogLevel::DEBUG);
     int num = 0;
     if (argc > 1) {
         num = atoi(argv[1]);

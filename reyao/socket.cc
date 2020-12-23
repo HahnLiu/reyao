@@ -147,11 +147,13 @@ bool Socket::init(int sockfd) {
 }
 
 void Socket::setReuseAddr() {
+    LOG_DEBUG << "set reuse addr";
     int val = 1;
     setOption(SOL_SOCKET, SO_REUSEADDR, val);
 }
 
 void Socket::setNoDelay() {
+    LOG_DEBUG << "set no delay";
     int val = 1;
     if (type_ == SOCK_STREAM) {
         setOption(IPPROTO_TCP, TCP_NODELAY, val);
@@ -160,12 +162,13 @@ void Socket::setNoDelay() {
 
 void Socket::newSock() {
     // LOG_DEBUG << "socket";
-    sockfd_ = ::socket(AF_INET, type_, protocol_);
+    sockfd_ = ::socket(type_, family_, protocol_);
     if (sockfd_ == -1) {
         LOG_ERROR << "socket(" << type_ << ", "
                   << protocol_ << ")" << "error=" 
                   << strerror(errno);
     } else {
+        // FIXME:
         setReuseAddr();
         setNoDelay();
     }
@@ -177,15 +180,12 @@ bool Socket::bind(const IPv4Address& addr) {
         if (!isValid()) {
             return false;
         }
-        if (::bind(sockfd_, addr.getAddr(), addr.getAddrLen())) {
-            LOG_ERROR << "error to bind " << addr.toString()
-                    << " error=" << strerror(errno);
-        return false;
-        }
-    } else {
-        LOG_WARN << "already bind " << toString();
     }
-    
+    if (::bind(sockfd_, addr.getAddr(), addr.getAddrLen())) {
+            LOG_ERROR << "error to bind " << addr.toString()
+                      << " error=" << strerror(errno);
+        return false;
+    }
     return true;
 }
 
@@ -218,10 +218,6 @@ Socket::SPtr Socket::accept() {
 }
 
 bool Socket::close() {
-    if (sockfd_ == -1 && !isConnected()) {
-        LOG_WARN << "repeated close sockfd" << sockfd_;
-        return true;
-    }
     state_ = State::CLOSE;
     if (sockfd_ != -1) {
         ::close(sockfd_);

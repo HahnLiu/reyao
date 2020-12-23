@@ -17,14 +17,14 @@ void getHostName() {
     //TODO: may block
     // const sockaddr_in& addr = IPv4Address::GetHostByName("www.baidu.com", 80);
     // IPv4Address ipaddr(addr);
-    auto ipaddr = IPv4Address::CreateByName("www.baidu.com", 80);
+    auto ipaddr = IPv4Address::CreateByName("www.sylarrrrr.com", 80);
     LOG_INFO << ipaddr->toString();
     Worker::GetWorker()->getScheduler()->stop();
 }
 
 
 int main(int argc, char** argv) {
-    Scheduler sh(0);
+    Scheduler sh(1);
     sh.addTask(getHostName);
     sh.start();
     return 0;
