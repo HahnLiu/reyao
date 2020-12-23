@@ -10,6 +10,7 @@ set(CXX_FLAGS
      -ggdb 
      -Wall
      -Werror
+     -Wno-unused-result
      -std=c++11
      -rdynamic
      -fPIC

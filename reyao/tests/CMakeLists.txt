@@ -41,4 +41,7 @@ target_link_libraries(http_server_test ${LIBS})
 add_executable(http_connection_test http_connection_test.cc)
 target_link_libraries(http_connection_test ${LIBS})
 
+add_executable(tcp_client_test tcp_client_test.cc)
+target_link_libraries(tcp_client_test ${LIBS})
+
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)  #项目的可执行文件输出目录
