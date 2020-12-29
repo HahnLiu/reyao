@@ -4,17 +4,21 @@ project(reyao)
 # 显示编译信息
 # set(CMAKE_VERBOSE_MAKEFILE ON)
 
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "DEBUG")
+endif()
+
 # 添加编译选项
 #####################################################################
 set(CXX_FLAGS 
-     -ggdb 
+    #  -ggdb 
      -Wall
      -Werror
      -Wno-unused-result
      -std=c++11
      -rdynamic
      -fPIC
-     -O3
+    #  -O3
 )
 
 # CXX_FLAGS:-ggdb;-Wall;-Werror;-std=c++11;-rdynamic;-fPIC;-O3
@@ -40,12 +44,8 @@ include_directories(.)
 # endif()
 ########################################################################
 
-if (NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Reyao-Debug")
-endif()
-
 # usage: string(toupper intput_str output_str)
-string(TOUPPER ${CMAKE_BUILD_TYPE} BUILD_TYPE)
+# string(TOUPPER ${CMAKE_BUILD_TYPE} BUILD_TYPE)
 
 #添加源文件子目录
 add_subdirectory(reyao)
