@@ -22,7 +22,7 @@ set(CXX_FLAGS
 )
 
 # CXX_FLAGS:-ggdb;-Wall;-Werror;-std=c++11;-rdynamic;-fPIC;-O3
-message(STATUS "CXX_FLAGS:${CXX_FLAGS}")
+# message(STATUS "CXX_FLAGS:${CXX_FLAGS}")
 
 # usage: string(replace match_str replace_str output_str input_str)
 string(REPLACE ";" " " CMAKE_CXX_FLAGS "${CXX_FLAGS}")
