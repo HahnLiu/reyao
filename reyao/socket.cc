@@ -37,7 +37,7 @@ IPv4Address::SPtr Socket::getPeerAddr() {
     if (!peer_) {
         IPv4Address::SPtr addr = std::make_shared<IPv4Address>();
         socklen_t addrlen = addr->getAddrLen();
-        if (::getsockname(sockfd_, addr->getAddr(), &addrlen)) {
+        if (::getpeername(sockfd_, addr->getAddr(), &addrlen)) {
             return nullptr;
         }
         peer_ = addr;
