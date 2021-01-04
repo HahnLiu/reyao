@@ -29,8 +29,8 @@ public:
     int getFamily() const { return family_; }
     int getProtocol() const { return protocol_; }
     int getSockfd() const { return sockfd_; }
-    IPv4Address::SPtr getLocalAddr() const;
-    IPv4Address::SPtr getPeerAddr() const;
+    IPv4Address::SPtr getLocalAddr();
+    IPv4Address::SPtr getPeerAddr();
     bool isConnected() const { return state_ == State::CONNECTED; }
     bool isValid() const { return sockfd_ != -1; }
     std::string toString() const;
@@ -83,6 +83,8 @@ private:
     int protocol_ = 0;
     int sockfd_ = -1;
     State state_ = State::INIT;
+    IPv4Address::SPtr local_;
+    IPv4Address::SPtr peer_;
 };
 
 } //namespace reyao

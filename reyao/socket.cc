@@ -21,22 +21,28 @@ Socket::~Socket() {
     close();
 }
 
-IPv4Address::SPtr Socket::getLocalAddr() const { 
-    IPv4Address::SPtr addr = std::make_shared<IPv4Address>();
-    socklen_t addrlen = addr->getAddrLen();
-    if (::getsockname(sockfd_, addr->getAddr(), &addrlen)) {
-        return nullptr;
+IPv4Address::SPtr Socket::getLocalAddr() { 
+    if (!local_) {
+        IPv4Address::SPtr addr = std::make_shared<IPv4Address>();
+        socklen_t addrlen = addr->getAddrLen();
+        if (::getsockname(sockfd_, addr->getAddr(), &addrlen)) {
+            return nullptr;
+        }
+        local_ = addr;
     }
-    return addr;
+    return local_;
 }
 
-IPv4Address::SPtr Socket::getPeerAddr() const { 
-    IPv4Address::SPtr addr = std::make_shared<IPv4Address>();
-    socklen_t addrlen = addr->getAddrLen();
-    if (::getpeername(sockfd_, addr->getAddr(), &addrlen)) {
-        return nullptr;
+IPv4Address::SPtr Socket::getPeerAddr() { 
+    if (!peer_) {
+        IPv4Address::SPtr addr = std::make_shared<IPv4Address>();
+        socklen_t addrlen = addr->getAddrLen();
+        if (::getsockname(sockfd_, addr->getAddr(), &addrlen)) {
+            return nullptr;
+        }
+        peer_ = addr;
     }
-    return addr;
+    return peer_;
 }
 
 std::string Socket::toString() const {
@@ -45,12 +51,17 @@ std::string Socket::toString() const {
         << " protocol=" << protocol_;
     if (state_ == State::LISTEN) {
         ss << " state=LISTEN";
-        ss << " local=" << getLocalAddr()->toString();
-        return ss.str();
+        if (local_) {
+            ss << " local=" << local_->toString();
+        }
     } else if (state_ == State::CONNECTED) {
         ss << " state=CONNECTED";
-        ss << " local=" << getLocalAddr()->toString()
-           << " peer=" << getPeerAddr()->toString();
+        if (local_) {
+            ss << " local=" << local_->toString();
+        }
+        if (peer_) {
+            ss << " peer=" << peer_->toString();
+        }
     } else {
         ss << " state=CLOSE";
     }
@@ -132,6 +143,8 @@ bool Socket::init(int sockfd) {
         !fdctx->isClose()) {
         sockfd_ = sockfd;
         state_ = State::CONNECTED;
+        getLocalAddr();
+        getPeerAddr();
         setReuseAddr();
         setNoDelay();
         return true;
@@ -229,6 +242,8 @@ bool Socket::connect(const IPv4Address& addr, int64_t timeout) {
         }
     }
     state_ = State::CONNECTED;
+    getLocalAddr();
+    getPeerAddr();
     return true;
 }
 

@@ -3,7 +3,7 @@
 set -x 
 
 SOURCE_DIR=`pwd`
-BUILD_DIR=${BUILD_DIR:-../reyao-build}
+BUILD_DIR=${BUILD_DIR:-../build/reyao-build}
 BUILD_TYPE=${BUILD_TYPE:-DEBUG}
 
 mkdir -p $BUILD_DIR/$BUILD_TYPE \
