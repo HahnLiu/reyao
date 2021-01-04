@@ -186,6 +186,7 @@ bool Socket::bind(const IPv4Address& addr) {
     if (::bind(sockfd_, addr.getAddr(), addr.getAddrLen())) {
         return false;
     }
+    getLocalAddr();
     return true;
 }
 
