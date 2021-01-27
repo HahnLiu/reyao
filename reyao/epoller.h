@@ -8,6 +8,7 @@
 #include <memory>
 #include <functional>
 #include <vector>
+#include <atomic>
 
 namespace reyao {
 
@@ -55,7 +56,7 @@ public:
     //等待并处理超时事件与到来事件
     void wait(epoll_event* events, int maxcnt, int timeout);
     //是否还有IO事件没触发
-    bool hasEvent() const { return !io_events_.empty(); }
+    bool hasEvent() const { return pending_events_ != 0; }
     //从epoll_wait中唤醒
     void notify();
 
@@ -74,6 +75,7 @@ private:
     Worker* worker_;
     int epfd_;
     int eventfd_;
+    std::atomic<size_t> pending_events_{0};
     std::vector<IOEvent*> io_events_;
 };
 

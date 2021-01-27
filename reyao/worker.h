@@ -18,8 +18,7 @@ class Scheduler;
 const int kStackSize = 128 * 1024; //默认分配的协程栈大小
 
 //线程的协程调度器
-class Worker : public NoCopyable,
-               public TimeManager {
+class Worker : public NoCopyable {
 public:
     typedef std::shared_ptr<Worker> SPtr;
     typedef std::function<void()> Func;
@@ -51,6 +50,8 @@ public:
     void stop();
     //唤醒调度器
     void notify();
+
+    bool isIdle() { return idle_; }
 
 public:
     //调度器的任务，可以是co或者func
@@ -120,8 +121,6 @@ private:
     //3.没有定时事件
     //4.poller没有等待的IO事件
     bool canStop(int64_t& timeout);
-
-    virtual void timerInsertAtFront() override;
 
 private:
     Scheduler* scheduler_;      //管理Worker的调度器池

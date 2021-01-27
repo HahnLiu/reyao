@@ -115,7 +115,7 @@ retry:
 
         //设置读写事件的超时时间
         if (timeout != -1) {                                                                 
-            timer = worker->addConditonTimer(timeout, [winfo, fd, type]() {
+            timer = worker->getScheduler()->addConditonTimer(timeout, [winfo, fd, type]() {
                 auto t = winfo.lock();
                 //没有超时，不触发事件
                 if (!t || t->cancelled) {
@@ -172,10 +172,10 @@ unsigned int sleep(unsigned int seconds) {
     }
     auto co = reyao::Coroutine::GetCurCoroutine();
     auto worker = reyao::Worker::GetWorker();
-    worker->addTimer(seconds * 1000, std::bind(
-                     (void(reyao::Worker::*)(reyao::Coroutine::SPtr coroutine))
-                     &reyao::Worker::addTask, worker, co)
-                    );
+    worker->getScheduler()->addTimer(seconds * 1000, std::bind(
+                                    (void(reyao::Worker::*)(reyao::Coroutine::SPtr coroutine))
+                                    &reyao::Worker::addTask, worker, co)
+                                    );
     reyao::Coroutine::YieldToSuspend();
     return 0;
 }
@@ -186,10 +186,10 @@ int usleep(useconds_t usec) {
     }
     auto co = reyao::Coroutine::GetCurCoroutine();
     auto worker = reyao::Worker::GetWorker();
-    worker->addTimer(usec / 1000, std::bind(
-                     (void(reyao::Worker::*)(reyao::Coroutine::SPtr coroutine))
-                     &reyao::Worker::addTask, worker, co)
-                    );
+    worker->getScheduler()->addTimer(usec / 1000, std::bind(
+                                    (void(reyao::Worker::*)(reyao::Coroutine::SPtr coroutine))
+                                    &reyao::Worker::addTask, worker, co)
+                                    );
     reyao::Coroutine::YieldToSuspend();
     return 0;
 }
@@ -202,10 +202,10 @@ int nanosleep(const struct timespec* req, struct timespec* rem) {
     int64_t timeout = req->tv_sec * 1000 + req->tv_nsec / 1000000;
     auto co = reyao::Coroutine::GetCurCoroutine();
     auto worker = reyao::Worker::GetWorker();
-    worker->addTimer(timeout, std::bind(
-                     (void(reyao::Worker::*)(reyao::Coroutine::SPtr coroutine))
-                     &reyao::Worker::addTask, worker, co)
-                    );
+    worker->getScheduler()->addTimer(timeout, std::bind(
+                                       (void(reyao::Worker::*)(reyao::Coroutine::SPtr coroutine))
+                                       &reyao::Worker::addTask, worker, co)
+                                       );
     reyao::Coroutine::YieldToSuspend();
     return 0;
 }
@@ -252,7 +252,7 @@ int connect_with_timeout(int sockfd, const struct sockaddr* addr,
     std::weak_ptr<reyao::timer_info> winfo(tinfo);
 
     if (timeout != -1) {
-        timer = worker->addConditonTimer(timeout, [winfo, sockfd]() {
+        timer = worker->getScheduler()->addConditonTimer(timeout, [winfo, sockfd]() {
             auto tinfo = winfo.lock();
             if (!tinfo || tinfo->cancelled) {
                 return;

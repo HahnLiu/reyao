@@ -1,7 +1,10 @@
 # 查找所有源文件和头文件
-file(GLOB LIB_SRC ${PROJECT_SOURCE_DIR}/reyao/*.cc ${PROJECT_SOURCE_DIR}/reyao/http/*.cc)
+file(GLOB LIB_SRC ${PROJECT_SOURCE_DIR}/reyao/*.cc 
+                  ${PROJECT_SOURCE_DIR}/reyao/http/*.cc 
+                  ${PROJECT_SOURCE_DIR}/reyao/rpc/*.cc)
 file(GLOB reyao_headers ${PROJECT_SOURCE_DIR}/reyao/*.h)
 file(GLOB reyao_http_headers ${PROJECT_SOURCE_DIR}/reyao/http/*.h)
+file(GLOB reyao_rpc_headers ${PROJECT_SOURCE_DIR}/reyao/rpc/*.h)
 
 # 用源文件生成动态库
 add_library(reyao SHARED ${LIB_SRC})
@@ -11,8 +14,8 @@ SET(LIBS
     reyao
     pthread
     dl
-    # ${PROTOBUF_LIBRARIES}
-    # ${ZLIB_LIBRARIES}
+    ${PROTOBUF_LIBRARIES}
+    ${ZLIB_LIBRARIES}
 )
 
 # set(REYAO_LIBRARY ${LIBS} CACHE INTERNAL "Reyao Library" )

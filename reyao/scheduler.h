@@ -6,7 +6,8 @@
 #include "reyao/log.h"
 #include "reyao/worker.h"
 #include "reyao/workerthread.h"
-#include "nocopyable.h"
+#include "reyao/nocopyable.h"
+#include "reyao/timer.h"
 
 #include <vector>
 #include <list>
@@ -17,7 +18,8 @@
 
 namespace reyao {
 
-class Scheduler : public NoCopyable {
+class Scheduler : public NoCopyable,
+                  public TimeManager {
 public:
     Scheduler(int worker_num,
               const std::string& name = "scheduler");
@@ -42,6 +44,8 @@ public:
     void stop();
     Worker* getNextWorker();
     Worker* getMainWorker() { return &main_worker_; }
+
+    virtual void timerInsertAtFront() override;
 
 private:
     Worker main_worker_;

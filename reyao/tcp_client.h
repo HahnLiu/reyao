@@ -12,22 +12,24 @@ public:
     typedef std::function<void(Socket::SPtr)> ConnectCallBack;
 
     TcpClient(Scheduler* sche, const IPv4Address& addr);
+    ~TcpClient() { LOG_INFO << "~TcpCLient"; }
 
     void start();
+    void stop();
+    Socket::SPtr getConn() { return conn_; }
 
     void setConnectCallBack(ConnectCallBack cb) { cb_ = cb; }
 
 private:
-    void handleConnect();
+    void handleConnect(Socket::SPtr conn);
 
 private:
     //TODO: retry & reconnect
 
     Scheduler* sche_;
-    const IPv4Address& addr_;
+    IPv4Address addr_;
     Socket::SPtr conn_;
     ConnectCallBack cb_;
-    bool is_conn_{false};
 
 };
 

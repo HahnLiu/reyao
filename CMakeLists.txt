@@ -33,15 +33,15 @@ string(REPLACE ";" " " CMAKE_CXX_FLAGS "${CXX_FLAGS}")
 include_directories(.)
 
 # 查找依赖库并引入依赖库的头文件
-# find_package(Protobuf)
-# if (Protobuf_FOUND)
-#     include_directories(${Protobuf_INCLUDE_DIRS})
-# endif()
+find_package(Protobuf)
+if (Protobuf_FOUND)
+    include_directories(${Protobuf_INCLUDE_DIRS})
+endif()
 
-# find_package(ZLIB REQUIRED)
-# if (ZLIB_FOUND)
-#     include_directories(${ZLIB_INCLUDE_DIRS})
-# endif()
+find_package(ZLIB REQUIRED)
+if (ZLIB_FOUND)
+    include_directories(${ZLIB_INCLUDE_DIRS})
+endif()
 ########################################################################
 
 # usage: string(toupper intput_str output_str)

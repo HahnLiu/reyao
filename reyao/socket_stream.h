@@ -18,6 +18,7 @@ public:
     int read(ByteArray* ba, size_t size);
     int write(const void* buf, size_t size);
     int write(ByteArray* ba, size_t size);
+    int write(ByteArray* ba);
     void close(); 
 
     Socket::SPtr getSock() const { return sock_; }

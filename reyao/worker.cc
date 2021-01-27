@@ -139,7 +139,7 @@ void Worker::notify() {
 }
 
 bool Worker::canStop(int64_t& timeout) {
-    timeout = getExpire();
+    timeout = scheduler_->getExpire();
     bool has_task = false;
     {
         MutexGuard lock(mutex_);
@@ -150,11 +150,6 @@ bool Worker::canStop(int64_t& timeout) {
             !has_task &&
             (timeout == -1) &&
             !poller_.hasEvent();
-}
-
-
-void Worker::timerInsertAtFront() {
-    notify();
 }
 
 } //namespace reyao

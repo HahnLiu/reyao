@@ -12,15 +12,22 @@ void TcpClient::start() {
     sche_->addTask([this]() {
         conn_ = Socket::CreateTcp();
         if (conn_->connect(addr_, kConnectMaxTimeOut)) {
-            handleConnect();
+            handleConnect(conn_);
         } else {
             LOG_ERROR  << "connect err " << addr_.toString();
         }
     });
 }
 
-void TcpClient::handleConnect() {
-    cb_(conn_);
+void TcpClient::stop() {
+    if (conn_->isConnected()) {
+        LOG_DEBUG << "TcpClient close connection";
+        conn_->close();
+    }
+}
+
+void TcpClient::handleConnect(Socket::SPtr conn) {
+    cb_(conn);
 }
 
 

@@ -1,6 +1,7 @@
 #include "reyao/epoller.h"
 #include "reyao/log.h"
 #include "reyao/worker.h"
+#include "reyao/scheduler.h"
 
 #include <assert.h>
 #include <unistd.h>
@@ -85,6 +86,8 @@ bool Epoller::addEvent(int fd, int type, Func func) {
                   << " errno:" << strerror(errno);
         return false;
     }
+
+    ++pending_events_;
     
     event->types = (event->types | type);
     IOEvent::EventCtx& ctx = event->getEventCtx(type);
@@ -121,6 +124,9 @@ bool Epoller::delEvent(int fd, int type) {
                   << " errno:" << strerror(errno);
         return false;
     }
+
+    --pending_events_;
+
     event->types = new_types;
     event->resetEventCtx(type);
     // if (op == EPOLL_CTL_DEL) {
@@ -156,7 +162,7 @@ bool Epoller::handleEvent(int fd, int type) {
     }
 
     event->triggleEvent(type);
-
+    --pending_events_;
     return true;
 }
 
@@ -187,9 +193,11 @@ bool Epoller::handleAllEvent(int fd) {
 
     if (event->types & EPOLLIN) {
         event->triggleEvent(EPOLLIN);
+        --pending_events_;
     }
     if (event->types & EPOLLOUT) {
         event->triggleEvent(EPOLLOUT);
+        --pending_events_;
     }
     return true;
 }
@@ -214,7 +222,7 @@ void Epoller::wait(epoll_event* events, int maxcnt, int timeout) {
         }
         //获取超时事件回调，添加进任务队列
         std::vector<Func> funcs;
-        worker_->expiredFunctions(funcs);
+        worker_->getScheduler()->expiredFunctions(funcs);
         if (!funcs.empty()) {
             worker_->addTask(funcs.begin(), funcs.end());
             funcs.clear();
@@ -263,9 +271,11 @@ void Epoller::wait(epoll_event* events, int maxcnt, int timeout) {
 
             if (real_events & EPOLLIN) {
                 io_event->triggleEvent(EPOLLIN);
+                --pending_events_;
             }
             if (real_events & EPOLLOUT) {
                 io_event->triggleEvent(EPOLLOUT);
+                --pending_events_;
             }
        
             // if (op == EPOLL_CTL_DEL) {

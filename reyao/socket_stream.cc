@@ -61,6 +61,10 @@ int SocketStream::write(ByteArray* ba, size_t size) {
     return rt;
 }
 
+int SocketStream::write(ByteArray* ba) {
+    return write(ba, ba->getReadSize());
+}
+
 void SocketStream::close() {
     if (sock_) {
         sock_->close();

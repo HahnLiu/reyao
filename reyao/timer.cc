@@ -122,7 +122,7 @@ Timer::SPtr TimeManager::addTimer(int64_t interval, std::function<void()> func,
     auto it = timers_.insert(timer).first;
     at_front = (it == timers_.begin());
 
-    //比原来的超时时间更近，唤醒iomanager重新设置epoll_wait的超时时间
+    // 比原来的超时时间更近，唤醒线程重新设置epoll_wait的超时时间
     if (at_front) {
         timerInsertAtFront();
     }

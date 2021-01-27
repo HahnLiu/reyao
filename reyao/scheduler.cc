@@ -63,5 +63,15 @@ Worker* Scheduler::getNextWorker() {
 }
 
 
+void Scheduler::timerInsertAtFront() {
+    for (auto& t : threads_) {
+        // 如果有超时的定时器，找到空闲线程处理
+        Worker* w = t->getWorker();
+        if (w->isIdle()) {
+            w->notify();
+        }
+    }
+}
+
 
 } //namespace reyao
