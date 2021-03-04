@@ -27,6 +27,7 @@ public:
 	void start();
 	void join();
 	pid_t getId() const { return id_;}
+	bool isStart() const { return started_; }
 
 private:
 	pthread_t tid_;          	//线程结构体

@@ -53,8 +53,8 @@ bool Worker::HandleAllEvent(int fd) {
 void Worker::run() {
     t_worker = this;
     Coroutine::InitMainCoroutine();
-    set_hook_enable(true);
-    // LOG_DEBUG << "thread set hook";
+    SetHookEnable(true);
+    LOG_DEBUG << "thread set hook";
     running_ = true;
     
     Coroutine::SPtr idle(new Coroutine(std::bind(&Worker::idle, this),
@@ -130,6 +130,8 @@ void Worker::idle() {
 
 void Worker::stop() {
     running_ = false;
+    LOG_INFO << "worker running_:" << running_;
+    notify();
 }
 
 void Worker::notify() {
@@ -146,10 +148,11 @@ bool Worker::canStop(int64_t& timeout) {
         has_task = !tasks_.empty();
         
     }
+    // LOG_INFO << "running_:" << (running_ ? "true" : "false") << " has task:"
+    //          << (has_task ? "true" : "false") << " timeout:" << timeout;
     return  !running_ &&
             !has_task &&
-            (timeout == -1) &&
-            !poller_.hasEvent();
+            (timeout == -1); // 退出时忽略 poller 上监听的事件，如之前 listen 的端口之类的
 }
 
 } //namespace reyao

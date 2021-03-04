@@ -51,6 +51,7 @@ FdManager::FdManager() {
 }
 
 std::shared_ptr<FdContext> FdManager::getFdContext(int fd) {
+    assert(fd >= 0);
     ReadLock lock(rwlock_);
     if ((int)fdcontexts_.size() <= fd) {
         return nullptr;

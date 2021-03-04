@@ -9,12 +9,16 @@ using namespace reyao;
 
 void test_sleep() {
     Worker::GetWorker()->addTask([] () {
-        sleep(2);
-        LOG_INFO << "sleep 2 s";
+        sleep(4);
+        LOG_INFO << "sleep 4 s";
     });
     Worker::GetWorker()->addTask([] () {
         sleep(3);
         LOG_INFO << "sleep 3 s";
+    });
+    Worker::GetWorker()->addTask([] () {
+        sleep(2);
+        LOG_INFO << "sleep 2 s";
     });
 
     Worker::GetWorker()->getScheduler()->stop();
@@ -67,10 +71,11 @@ void test_sock() {
 }
 
 int main(int argc, char** argv) {
-    Scheduler sh(0);
-    sh.addTask(test_sock);
+    g_logger->setLevel(LogLevel::INFO);
+    Scheduler sh;
+    sh.startAsync();
+    sh.addTask(test_sleep);
 
-    sh.start();
-
+    sh.wait();
     return 0;
 }

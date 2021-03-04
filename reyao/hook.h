@@ -10,8 +10,8 @@
 
 namespace reyao {
 
-bool is_hook_enable();
-void set_hook_enable(bool flag);
+bool IsHookEnable();
+void SetHookEnable(bool flag);
 
 } //namespace reyao
 

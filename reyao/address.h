@@ -30,6 +30,7 @@ public:
 
     static sockaddr_in GetHostByName(const char* hostname, uint16_t port = 0);
     static IPv4Address::SPtr CreateByName(const char* hostname, uint16_t port = 0);
+    static IPv4Address::SPtr CreateAddress(const char* addr, uint16_t port = 0);
 
 
 private:

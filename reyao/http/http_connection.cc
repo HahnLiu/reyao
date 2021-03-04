@@ -124,11 +124,11 @@ HttpResult::SPtr HttpConnection::DoRequest(HttpRequest* req,
     }
     Socket::SPtr sock = Socket::CreateTcp();
     
-    sock->setRecvTimeout(timeout);
     if (!sock->connect(*addr)) {
         return std::make_shared<HttpResult>(HttpResult::Error::CONNECT_FAIL, 
                                             nullptr, "peer addr:" + addr->toString());
     }
+    sock->setRecvTimeout(timeout);
     LOG_INFO << "request:" << req->toString();
     HttpConnection::SPtr connect(new HttpConnection(sock));
     int rt = connect->sendRequest(req);

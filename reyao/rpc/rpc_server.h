@@ -40,7 +40,7 @@ private:
 class RpcServer : public TcpServer {
 public:
     typedef std::map<const google::protobuf::Descriptor*, std::shared_ptr<RpcCallBack>> HandlerMap;
-    RpcServer(Scheduler* sche, const IPv4Address& addr): TcpServer(sche, addr) {}
+    RpcServer(Scheduler* sche, IPv4Address::SPtr addr): TcpServer(sche, addr) {}
 
     void handleClient(Socket::SPtr client) override;
 

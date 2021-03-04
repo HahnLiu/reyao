@@ -43,8 +43,10 @@ void test_chunk() {
 }
 
 int main(int argc, char** argv) {
-    Scheduler sh(1);
+    Scheduler sh;
+    sh.startAsync();
     sh.addTask(test_chunk);
+    sh.wait();
     // sh.addTask(test);
     return 0;
 }

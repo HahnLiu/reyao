@@ -23,7 +23,7 @@ static const char* s_method_string[] = {
 
 const char* HttpMethodToString(const HttpMethod& m) {
     uint32_t method = (uint32_t)m;
-    if (method >= 34) {
+    if (method >= 4) {
         return "<unknown>";
     }
     return s_method_string[method - 1];

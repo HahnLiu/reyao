@@ -11,10 +11,10 @@ class TcpClient : public NoCopyable {
 public:
     typedef std::function<void(Socket::SPtr)> ConnectCallBack;
 
-    TcpClient(Scheduler* sche, const IPv4Address& addr);
+    TcpClient(Scheduler* sche, IPv4Address::SPtr addr);
     ~TcpClient() { LOG_INFO << "~TcpCLient"; }
 
-    void start();
+    bool start();
     void stop();
     Socket::SPtr getConn() { return conn_; }
 
@@ -27,7 +27,7 @@ private:
     //TODO: retry & reconnect
 
     Scheduler* sche_;
-    IPv4Address addr_;
+    IPv4Address::SPtr addr_;
     Socket::SPtr conn_;
     ConnectCallBack cb_;
 

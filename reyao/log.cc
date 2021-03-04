@@ -22,6 +22,22 @@ LogData::LogData(LogLevel::Level level, time_t time, uint32_t elapse,
       line_(line) {
                      
 }
+
+void LogData::format(const char* fmt, ...) {
+    va_list al;
+    va_start(al, fmt);
+    format(fmt, al);
+    va_end(al);
+}
+
+void LogData::format(const char* fmt, va_list al) {
+    char* buf = nullptr;
+    int len = vasprintf(&buf, fmt, al);
+    if(len != -1) {
+        content_ << std::string(buf, len);
+        free(buf);
+    }
+}
         
 LogDataWrap::LogDataWrap(LogLevel::Level level, time_t time, uint32_t elapse,
             uint32_t thread_id, uint32_t coroutine_id, std::string thread_name, 

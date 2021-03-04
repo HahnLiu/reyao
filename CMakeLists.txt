@@ -8,8 +8,6 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "DEBUG")
 endif()
 
-# 添加编译选项
-#####################################################################
 set(CXX_FLAGS 
     #  -ggdb 
      -Wall
@@ -18,15 +16,9 @@ set(CXX_FLAGS
      -std=c++11
      -rdynamic
      -fPIC
-    #  -O3
+     -O3
 )
-
-# CXX_FLAGS:-ggdb;-Wall;-Werror;-std=c++11;-rdynamic;-fPIC;-O3
-# message(STATUS "CXX_FLAGS:${CXX_FLAGS}")
-
-# usage: string(replace match_str replace_str output_str input_str)
 string(REPLACE ";" " " CMAKE_CXX_FLAGS "${CXX_FLAGS}")
-#######################################################################
 
 # 添加头文件查找路径
 #######################################################################
@@ -44,12 +36,6 @@ if (ZLIB_FOUND)
 endif()
 ########################################################################
 
-# usage: string(toupper intput_str output_str)
-# string(TOUPPER ${CMAKE_BUILD_TYPE} BUILD_TYPE)
-
 #添加源文件子目录
 add_subdirectory(reyao)
-
-set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)  #项目生成态库输出目录
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)  #项目的可执行文件输出目录
 

@@ -10,8 +10,8 @@ using namespace reyao;
 void server() {
     g_logger->setLevel(LogLevel::INFO);
     Socket::SPtr listen_sock = Socket::CreateTcp();
-    IPv4Address ipv4_addr("127.0.0.1", 30000);
-    listen_sock->bind(ipv4_addr);
+    auto addr = IPv4Address::CreateAddress("0.0.0.0", 3000);
+    listen_sock->bind(*addr);
     listen_sock->listen();
     // listen_sock->setRecvTimeout(5000);
     LOG_INFO << listen_sock->toString();
@@ -22,7 +22,7 @@ void server() {
         LOG_INFO << conn_sock->toString();
         HttpSession session(conn_sock);
         HttpRequest req;
-        if (!session.recvRequest(&req)) {
+        if (session.recvRequest(&req)) {
             LOG_INFO << req.toString();
         } else {
             LOG_ERROR << "bad request";
@@ -36,11 +36,11 @@ void server() {
 void client() {
     g_logger->setLevel(LogLevel::INFO);
     Socket::SPtr sock = Socket::CreateTcp();
-    IPv4Address addr("127.0.0.1", 30000);
-    if (sock->connect(addr, 2000)) {
+    auto addr = IPv4Address::CreateAddress("0.0.0.0", 3000);
+    if (sock->connect(*addr, 2000)) {
         LOG_INFO << sock->toString();
-        // char buf[] = "GET /index.html?id=hahnliu#fragment HTTP/1.1\r\nHost: www.hahnliu0123.com\r\nContent-Length: 11\r\n\r\nhello world";
-        char buf[] = "HTTP/1.1 200 OK\r\nHost: www.hahnliu0123.com\r\n\r\nhello world";
+        char buf[] = "GET /index.html?id=hahnliu#fragment HTTP/1.1\r\nHost: www.hahnliu0123.com\r\nContent-Length: 11\r\n\r\nhello world";
+        // char buf[] = "HTTP/1.1 200 OK\r\nHost: www.hahnliu0123.com\r\n\r\nhello world";
         sock->send(buf, sizeof buf);
         sock->close();
     }
@@ -48,7 +48,8 @@ void client() {
 }
 
 int main(int argc, char** argv) {
-    Scheduler sh(0);
+    Scheduler sh;
+    sh.startAsync();
     if (argc == 1) {
         std::cout << "to few arg";
         return 0;
@@ -63,6 +64,6 @@ int main(int argc, char** argv) {
         std::cout << "unknown arg";
     }
 
-    sh.start();
+    sh.wait();
     return 0;
 }

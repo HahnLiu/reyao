@@ -20,6 +20,7 @@ Timer::Timer(int64_t expire) {
 }
 
 bool Timer::cancel() {
+    MutexGuard lock(manager_->mutex_);
     if (func_) {
         func_ = nullptr; //TODO:
         auto it = manager_->timers_.find(shared_from_this());
@@ -34,6 +35,7 @@ bool Timer::cancel() {
 }
 
 bool Timer::refresh() {
+    MutexGuard lock(manager_->mutex_);
     if (!func_) {
         return false;
     }
@@ -51,6 +53,7 @@ bool Timer::reset(int64_t interval, bool from_now) {
     if (interval_ == interval && !from_now) {
         return true;
     }
+    MutexGuard lock(manager_->mutex_);
     Timer::SPtr timer = shared_from_this();
     Timer::SPtr front_timer;
     bool at_front;
@@ -119,6 +122,7 @@ Timer::SPtr TimeManager::addTimer(int64_t interval, std::function<void()> func,
                                   bool recursive) {
     bool at_front;
     Timer::SPtr timer(new Timer(interval, func, recursive, this));
+    MutexGuard lock(mutex_);
     auto it = timers_.insert(timer).first;
     at_front = (it == timers_.begin());
 
@@ -145,6 +149,7 @@ Timer::SPtr TimeManager::addConditonTimer(int64_t interval,
 }
 
 int64_t TimeManager::getExpire() {
+    MutexGuard lock(mutex_);
     need_notify_ = false;
     if (timers_.empty()) {
         return -1;
@@ -161,11 +166,8 @@ int64_t TimeManager::getExpire() {
 
 //TODO: 能不能在遍历时加入超时回调
 void TimeManager::expiredFunctions(std::vector<std::function<void()> >& expired_funcs) {
+    MutexGuard lock(mutex_);
     if (timers_.empty()) {
-        return;
-    }
-
-    if (timers_.empty()){
         return;
     }
 
@@ -194,6 +196,7 @@ void TimeManager::expiredFunctions(std::vector<std::function<void()> >& expired_
 }
 
 bool TimeManager::hasTimer() {
+    MutexGuard lock(mutex_);
     return !timers_.empty();
 }
 

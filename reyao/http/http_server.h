@@ -10,7 +10,7 @@ class HttpServer : public TcpServer {
 public:
     typedef std::shared_ptr<HttpServer> SPtr;
     HttpServer(Scheduler* scheduler,
-               const IPv4Address& addr,
+               IPv4Address::SPtr addr,
                bool keep_alive = false);
 
     void handleClient(Socket::SPtr client) override;

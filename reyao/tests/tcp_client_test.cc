@@ -3,8 +3,9 @@
 using namespace reyao;
 
 int main() {
-    IPv4Address addr("127.0.0.1", 30000); // echo server port
-    Scheduler sche(1);
+    auto addr = IPv4Address::CreateAddress("0.0.0.0", 30000); // echo server port
+    Scheduler sche;
+    sche.wait();
     TcpClient client(&sche, addr);
     client.setConnectCallBack([](Socket::SPtr conn) {
         char buf1[1024];
@@ -23,6 +24,8 @@ int main() {
         }
         conn->close();
     });
-    client.start();
-    sche.start();
+    if (client.start() == false) {
+        LOG_INFO << "connect " << addr->toString() << " error";
+    }
+    sche.wait();
 }

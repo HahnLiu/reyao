@@ -24,10 +24,10 @@ public:
 class RpcClient : public NoCopyable {
 public:
     typedef std::shared_ptr<RpcClient> SPtr;
-    RpcClient(Scheduler* sche, const IPv4Address& addr): client_(sche, addr) {}
+    RpcClient(Scheduler* sche, IPv4Address::SPtr addr): client_(sche, addr) {}
 
     template<typename T>
-    inline void Call(MessageSPtr req, typename TypeTraits<T>::ResponseHandler handler) {
+    bool Call(MessageSPtr req, typename TypeTraits<T>::ResponseHandler handler) {
         client_.setConnectCallBack([=](Socket::SPtr conn) {
             LOG_DEBUG << "RpcClient connect to " << client_.getConn()->getPeerAddr()->toString();
             ProtobufCodec codec(conn);
@@ -45,7 +45,7 @@ public:
             }
             conn->close();
         });
-        client_.start();
+        return client_.start();
     }
 
 private:

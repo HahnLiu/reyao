@@ -6,7 +6,8 @@ using namespace reyao;
 
 
 int main(int argc, char** argv) {
-    Scheduler sh(0);
+    Scheduler sh;
+    sh.startAsync();
     sh.addTask([&]() {
         HttpConnectionPool::SPtr pool(new HttpConnectionPool(
                                     "www.sylar.top", "", 80, 10,
@@ -17,6 +18,6 @@ int main(int argc, char** argv) {
                 LOG_INFO << res->toString();
             }, true);
     });
-    sh.start();
+    sh.wait();
     return 0;
 }

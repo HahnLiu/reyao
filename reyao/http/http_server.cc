@@ -3,7 +3,7 @@
 namespace reyao {
 
 HttpServer::HttpServer(Scheduler* scheduler,
-                       const IPv4Address& addr,
+                       IPv4Address::SPtr addr,
                        bool keep_alive) 
     : TcpServer(scheduler, addr, "HttpServer"),
       keep_alive_(keep_alive) {

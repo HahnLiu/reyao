@@ -9,6 +9,7 @@
 
 #include <time.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include <list>
 #include <vector>
@@ -18,24 +19,32 @@
 #include <map>
 
 
-#define g_logger reyao::Singleton<reyao::Logger>::GetInstance()
-
-#define LOG_DEBUG  LOG_LEVEL(reyao::LogLevel::DEBUG)
-
-#define LOG_INFO  LOG_LEVEL(reyao::LogLevel::INFO)
-
-#define LOG_WARN  LOG_LEVEL(reyao::LogLevel::WARN)
-
-#define LOG_ERROR  LOG_LEVEL(reyao::LogLevel::ERROR)
-
-#define LOG_FATAL  LOG_LEVEL(reyao::LogLevel::FATAL)
+#define g_logger Singleton<reyao::Logger>::GetInstance()
 
 //创建临时LogDataWrap对象，返回一个流，LogDataWrap对象析构时append到Logger中
 #define LOG_LEVEL(level) \
-        if (g_logger->getLevel() <= level) \
-            reyao::LogDataWrap(level, time(nullptr), 0, reyao::Thread::GetThreadId(), \
-            reyao::Coroutine::GetCoroutineId(), reyao::Thread::GetThreadName(),  \
-            __FILENAME__, __LINE__).getDataStream()
+    if (reyao::g_logger->getLevel() <= level) \
+        reyao::LogDataWrap(level, time(nullptr), 0, reyao::Thread::GetThreadId(), \
+        reyao::Coroutine::GetCoroutineId(), reyao::Thread::GetThreadName(),  \
+        __FILENAME__, __LINE__).getDataStream()
+
+#define LOG_DEBUG  LOG_LEVEL(reyao::LogLevel::DEBUG)
+#define LOG_INFO  LOG_LEVEL(reyao::LogLevel::INFO)
+#define LOG_WARN  LOG_LEVEL(reyao::LogLevel::WARN)
+#define LOG_ERROR  LOG_LEVEL(reyao::LogLevel::ERROR)
+#define LOG_FATAL  LOG_LEVEL(reyao::LogLevel::FATAL)
+
+#define LOG_FMT(level, fmt, ...) \
+    if (reyao::g_logger->getLevel() <= level)  \
+        reyao::LogDataWrap(level, time(nullptr), 0, reyao::Thread::GetThreadId(), \
+        reyao::Coroutine::GetCoroutineId(), reyao::Thread::GetThreadName(),  \
+        __FILENAME__, __LINE__).getData().format(fmt, ## __VA_ARGS__)
+
+#define LOG_FMT_DEBUG(fmt, ...) LOG_FMT(reyao::LogLevel::DEBUG, fmt, ## __VA_ARGS__)
+#define LOG_FMT_INFO(fmt, ...) LOG_FMT(reyao::LogLevel::INFO, fmt, ## __VA_ARGS__)
+#define LOG_FMT_WARN(fmt, ...) LOG_FMT(reyao::LogLevel::WARN, fmt, ## __VA_ARGS__)
+#define LOG_FMT_ERROR(fmt, ...) LOG_FMT(reyao::LogLevel::ERROR, fmt, ## __VA_ARGS__)
+#define LOG_FMT_FATAL(fmt, ...) LOG_FMT(reyao::LogLevel::FATAL, fmt, ## __VA_ARGS__)
 
 #define __FILENAME__ strrchr(__FILE__, '/') ? (strrchr(__FILE__, '/') + 1) : __FILE__
 
@@ -75,6 +84,9 @@ public:
     const char* getFileName() const { return file_name_; }
     uint32_t getLine() const { return line_; }
 
+    void format(const char* fmt, ...);
+    void format(const char* fmt, va_list al);
+
 private:
     LogLevel::Level level_;             //日志等级
     std::stringstream content_;         //日志内容
@@ -95,6 +107,7 @@ public:
     ~LogDataWrap();
 
     std::stringstream& getDataStream() { return data_.getContentStream(); }
+    LogData& getData() { return data_; }
 
 private:
     LogData data_;

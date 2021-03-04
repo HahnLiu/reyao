@@ -15,13 +15,14 @@
 #include <string>
 #include <atomic>
 #include <map>
+#include <assert.h>
 
 namespace reyao {
 
 class Scheduler : public NoCopyable,
                   public TimeManager {
 public:
-    Scheduler(int worker_num,
+    Scheduler(int thread_num = 1,
               const std::string& name = "scheduler");
     ~Scheduler();
 
@@ -36,25 +37,37 @@ public:
             worker->addTask(cf);
         } else {
             auto worker = getNextWorker();
+            assert(worker != nullptr);
             worker->addTask(cf);
         }
     }
 
-    void start();
+    void startAsync();
+    void wait();
     void stop();
+    void joinThread();
     Worker* getNextWorker();
     Worker* getMainWorker() { return &main_worker_; }
 
     virtual void timerInsertAtFront() override;
 
 private:
+    void init();
+
     Worker main_worker_;
     const std::string name_;
     std::map<int, Worker*> worker_map_;
     std::vector<Worker*> workers_;
     std::vector<WorkerThread::UPtr> threads_;
-    int worker_num_;
+    int thread_num_;
     int index_;
+
+    Thread init_thread_;
+    Thread join_thread_;
+    CountDownLatch init_latch_;
+    CountDownLatch quit_latch_;
+    
+    bool running_{false};
 };
 
 } //namespace reyao

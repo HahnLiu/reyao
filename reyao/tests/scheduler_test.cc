@@ -19,7 +19,8 @@ void scheduler_test() {
 
 int main(int argc, char* argv[]) {
     Scheduler sh(3);
+    sh.startAsync();
     sh.addTask(scheduler_test);
-    sh.start();
+    sh.wait();
     return 0;
 }

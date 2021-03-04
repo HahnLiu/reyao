@@ -5,25 +5,24 @@
 
 namespace reyao {
 
-Scheduler::Scheduler(int worker_num,
+Scheduler::Scheduler(int thread_num,
                      const std::string& name)
-    : main_worker_(this, "worker_0"),
+    : main_worker_(this, "reyao_sche_1"),
       name_(name),
-      worker_num_(worker_num),
-      index_(0) {
-
+      thread_num_(thread_num),
+      index_(0),
+      init_thread_(std::bind(&Scheduler::init, this), "reyao_sche_init"),
+      join_thread_(std::bind(&Scheduler::joinThread, this), "reyao_sche_join"),
+      init_latch_(1),
+      quit_latch_(1) {
+    
+    assert(thread_num >= 1);
     worker_map_[Thread::GetThreadId()] = &main_worker_;
-    if (worker_num_ != 0) {
-        for (int i = 0; i < worker_num_; i++) {
-            WorkerThread::UPtr wt(new WorkerThread(this, "worker_" + std::to_string(i + 1)));
-            auto worker = wt->getWorker();
-            workers_.push_back(worker);
-            worker_map_[wt->getThread().getId()] = worker;
-            threads_.push_back(std::move(wt));
-        }
-    } else {
+    if (thread_num_ == 1) {
+        // 当不使用线程池时，将 init_thread 当作 IO 线程
         workers_.push_back(&main_worker_);
-        ++worker_num_;
+    } else {
+        --thread_num_;
     }
 }
 
@@ -32,19 +31,44 @@ Scheduler::~Scheduler() {
 
 }
 
-void Scheduler::start() {
-    // LOG_DEBUG << "scheduler start";
+void Scheduler::init() {
+    if (running_) {
+        return;
+    }
+
+    for (int i = 0; i < thread_num_; i++) {
+        WorkerThread::UPtr wt(new WorkerThread(this, "reyao_sche_worker_" + std::to_string(i + 1)));
+        auto worker = wt->getWorker();
+        assert(worker != nullptr);
+        workers_.push_back(worker);
+        worker_map_[wt->getThread()->getId()] = worker;
+        threads_.push_back(std::move(wt));
+    }
+    running_ = true;
+    init_latch_.countDown();
+    // init thread start to work
     main_worker_.run();
 }
 
+void Scheduler::startAsync() {
+    if (running_) {
+        return;
+    }
+    init_thread_.start();
+    init_latch_.wait();
+}
+
+void Scheduler::wait() {
+    quit_latch_.wait();
+}
+
 void Scheduler::stop() {
-    // LOG_DEBUG << "scheduler stop";
-    //通知线程唤醒,处理剩余任务并退出
-    
-    set_hook_enable(false);
+    if (!running_) {
+        return;
+    }
+    running_ = false;
 
     main_worker_.stop();
-    main_worker_.notify();
 
     if (threads_.empty()) {
         return;
@@ -52,13 +76,31 @@ void Scheduler::stop() {
 
     for (auto& worker : workers_) {
         worker->stop();
-        worker->notify();
+    }
+    
+    if (reyao::IsHookEnable()) {
+        // 在 Scheduler 的工作线程中调用 stop，另起一个线程收集所有结束的工作线程
+        join_thread_.start();
+    } else {
+        // 在主线程中调用 stop，直接回收工作线程
+        joinThread();
     }
 }
 
+
+void Scheduler::joinThread() {
+    if (init_thread_.isStart()) {
+        init_thread_.join();
+    }
+    for (auto& thread : threads_) {
+        thread->getThread()->join();
+    }
+    quit_latch_.countDown();
+}
+
 Worker* Scheduler::getNextWorker() {
-    auto worker = workers_[index_];
-    index_ = (index_ + 1) % worker_num_;
+    auto worker = workers_.at(index_);
+    index_ = (index_ + 1) % thread_num_;
     return worker;
 }
 

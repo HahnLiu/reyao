@@ -21,8 +21,9 @@ void log_test() {
 	for (int i = 0; i < 5; i++)
 	{
 		Thread::SPtr t(new Thread([]() {
-			for (int i = 0; i < 10000000; i++) {	
+			for (int i = 0; i < 1000000; i++) {	
 				LOG_DEBUG << "hellohellohellohellohellohellohellohellohellohello";
+				// LOG_FMT_DEBUG("hellohellohellohellohellohellohellohellohellohello");
 				total += 100;
 				// LOG_DEBUG << "helloworld";
 				// total += 10;

@@ -12,7 +12,7 @@ namespace reyao {
 class TcpServer : public NoCopyable {
 public:
     TcpServer(Scheduler* scheduler, 
-              const IPv4Address& addr,
+              IPv4Address::SPtr addr,
               const std::string& name = "tcp_server");
     virtual ~TcpServer();
 
@@ -32,7 +32,7 @@ protected:
 
 private:
     Scheduler* scheduler_;
-    const IPv4Address& addr_;
+    IPv4Address::SPtr addr_;
     std::string name_;
     bool stopped_;
     Socket::SPtr listen_sock_;

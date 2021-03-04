@@ -60,6 +60,8 @@ public:
     //从epoll_wait中唤醒
     void notify();
 
+    int getEventCount() const { return pending_events_; }
+
 private:
     void resize(size_t size) {
         io_events_.resize(size);

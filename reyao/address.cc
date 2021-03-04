@@ -87,5 +87,10 @@ IPv4Address::SPtr IPv4Address::CreateByName(const char* hostname, uint16_t port)
     return std::make_shared<IPv4Address>(addr);
 }
 
+IPv4Address::SPtr IPv4Address::CreateAddress(const char* addr, uint16_t port) {
+    IPv4Address::SPtr ret(new IPv4Address(addr, port));
+    return ret;
+}
+
 
 } //namepsace reyao

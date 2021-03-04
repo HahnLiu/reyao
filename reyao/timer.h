@@ -1,6 +1,7 @@
 #pragma once
 
 #include "reyao/nocopyable.h"
+#include "reyao/mutex.h"
 
 #include <memory>
 #include <functional>
@@ -66,6 +67,8 @@ private:
 
     std::set<Timer::SPtr, Timer::Comparator> timers_;
     bool need_notify_ = false;
+
+    Mutex mutex_;
 };
 
 } //namespace reyao

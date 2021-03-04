@@ -15,7 +15,7 @@ public:
                  const std::string& name = "worker");
     ~WorkerThread();
 
-    const Thread& getThread() const { return thread_; }
+    Thread* getThread() { return &thread_; }
     Worker* getWorker() { return &worker_; }
 
 private:

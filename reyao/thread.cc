@@ -69,6 +69,7 @@ void Thread::join() {
 	if (started_ && !joined_) {
 		pthread_join(tid_, NULL);
 		joined_  = true;
+		started_ = false;
 	}
 }
 

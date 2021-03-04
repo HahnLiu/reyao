@@ -8,7 +8,7 @@ namespace reyao {
 static uint64_t s_max_recv_timeout = 30 * 1000;
 
 TcpServer::TcpServer(Scheduler* scheduler, 
-                     const IPv4Address& addr,
+                     IPv4Address::SPtr addr,
                      const std::string& name)
     : scheduler_(scheduler),
       addr_(addr),
@@ -18,25 +18,26 @@ TcpServer::TcpServer(Scheduler* scheduler,
 }
 
 TcpServer::~TcpServer() {
+    stopped_ = true;
     listen_sock_->close();
 }
 
 void TcpServer::listenAndAccpet() {
     listen_sock_ = Socket::CreateTcp();
-    int rt = listen_sock_->bind(addr_);
+    int rt = listen_sock_->bind(*addr_);
+    LOG_DEBUG << addr_->toString();
     if (!rt) {
-        LOG_ERROR << "bind error addr=" << addr_.toString()
+        LOG_ERROR << "bind error addr=" << addr_->toString()
                   << " error=" << strerror(errno);
     }
     rt = listen_sock_->listen();
     if (!rt) {
-        LOG_ERROR << "listen error addr=" << addr_.toString()
+        LOG_ERROR << "listen error addr=" << addr_->toString()
                   << " error=" << strerror(errno);       
     }
-    LOG_INFO << "listen_sock=" << listen_sock_->toString();
-    LOG_INFO << "is_hook " << (is_hook_enable() ? true : false);
     accept();
 }
+
 // TODO: combine TcpServer::listen to start
 void TcpServer::start() {
     if (!stopped_) {

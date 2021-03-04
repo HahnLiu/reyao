@@ -28,9 +28,10 @@ int main(int argc, char** argv) {
         printf("usage: ./address_test addr");
     }
 
-    Scheduler sh(1);
+    Scheduler sh;
     sh.addTask(std::bind(getHostName, argv[1]));
-    sh.start();
+    sh.startAsync();
     // getHostName();
+    sh.wait();
     return 0;
 }

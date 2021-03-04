@@ -29,12 +29,13 @@ using namespace reyao;
 
 int main(int argc, char** argv) {
     g_logger->setLevel(LogLevel::WARN);
-    int num = 0;
-    if (argc > 1) {
-        num = atoi(argv[1]);
-    }
+    int num = 5;
+    // if (argc > 2) {
+    //     num = atoi(argv[1]);
+    // }
     Scheduler sh(num);
-    IPv4Address addr("0.0.0.0", 8010);
+    sh.startAsync();
+    auto addr = IPv4Address::CreateAddress("0.0.0.0", 8010);
     HttpServer server(&sh, addr, true);
     auto dispatch = server.getDispatch();
     dispatch->addServlet("/hello", [](const HttpRequest& req,
@@ -46,8 +47,7 @@ int main(int argc, char** argv) {
         return 0;           
     });
 
-
     server.start();
-    sh.start();
+    sh.wait();
     return 0;
 }

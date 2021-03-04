@@ -2,21 +2,28 @@
 
 namespace reyao {
 
-const int kConnectMaxTimeOut = 1000;
+const int kConnectMaxTimeOut = 10 * 1000;
 
-TcpClient::TcpClient(Scheduler* sche, const IPv4Address& addr)
+TcpClient::TcpClient(Scheduler* sche, IPv4Address::SPtr addr)
     : sche_(sche),
       addr_(addr) {}
 
-void TcpClient::start() {
-    sche_->addTask([this]() {
-        conn_ = Socket::CreateTcp();
-        if (conn_->connect(addr_, kConnectMaxTimeOut)) {
-            handleConnect(conn_);
-        } else {
-            LOG_ERROR  << "connect err " << addr_.toString();
-        }
-    });
+bool TcpClient::start() {
+    //sche_->addTask([this]() {
+    //    conn_ = Socket::CreateTcp();
+    //    if (conn_->connect(addr_, kConnectMaxTimeOut)) {
+    //        handleConnect(conn_);
+    //    } else {
+    //        LOG_ERROR  << "connect err " << addr_.toString();
+    //    }
+    //});
+    conn_ = Socket::CreateTcp();
+    if (conn_->connect(*addr_, kConnectMaxTimeOut)) {
+        handleConnect(conn_);
+        return true;
+    } else {
+        return false;
+    }
 }
 
 void TcpClient::stop() {

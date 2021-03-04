@@ -62,11 +62,11 @@ struct HookIniter {
 
 static HookIniter s_hook_initer; //在main之前hook_init()
 
-bool is_hook_enable() {
+bool IsHookEnable() {
     return t_hook_enable;
 }
 
-void set_hook_enable(bool flag) {
+void SetHookEnable(bool flag) {
     t_hook_enable = flag;
 }
 
@@ -82,7 +82,7 @@ static ssize_t do_io(int fd, OriginFunc func, const char* hook_func_name,
     if (!t_hook_enable) {
         return func(fd, std::forward<Args>(args)...);
     }
-
+    LOG_DEBUG << "in do_io " << "fd= " << fd << " hook_func=" << hook_func_name;
     auto fdctx = g_fdmanager->getFdContext(fd);
     if (!fdctx) {
         //不是socket fd
