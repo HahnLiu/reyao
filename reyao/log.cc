@@ -9,6 +9,8 @@ namespace reyao {
 thread_local char t_time[64]; //缓存格式化输出时间，避免频繁调用strftime，做缓存后，wsl2中写300m数据的速度从36s提升到了25s
 thread_local time_t t_last_second; //上一次日格式化时间的秒数
 
+static const char* default_log_format = "[%p%%d]%T[%t %c]%T%f(%l)%T%m%n";
+
 LogData::LogData(LogLevel::Level level, time_t time, uint32_t elapse,
                  uint32_t thread_id, uint32_t coroutine_id, 
                  std::string thread_name, const char *file_name, uint32_t line)
@@ -269,7 +271,7 @@ std::string LogFormatter::format(const LogData& data) {
 
 Logger::Logger()
     : level_(LogLevel::DEBUG), //默认为DEBUG级别
-      formatter_(std::make_shared<LogFormatter>("[%d]%T[%p]%T[%N:%t]%T[%c]%T[%f:%l]%T%m%n")), //默认日志格式
+      formatter_(std::make_shared<LogFormatter>(default_log_format)), //默认日志格式
       appender_(std::make_shared<ConsoleAppender>()) {
 
 }

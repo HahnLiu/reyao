@@ -189,7 +189,7 @@ public:
     void setFileAppender();
 
 private:
-    LogLevel::Level level_;                     //日志级别
+    LogLevel::Level level_;          //日志级别
     LogFormatter::SPtr formatter_;   //日志格式
     LogAppender::SPtr appender_;     //日志的输出目的地
     Mutex mutex_;

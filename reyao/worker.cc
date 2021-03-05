@@ -148,8 +148,7 @@ bool Worker::canStop(int64_t& timeout) {
         has_task = !tasks_.empty();
         
     }
-    // LOG_INFO << "running_:" << (running_ ? "true" : "false") << " has task:"
-    //          << (has_task ? "true" : "false") << " timeout:" << timeout;
+    LOG_FMT_DEBUG("running:%d has_task:%d timeout:%d", running_, has_task, timeout);
     return  !running_ &&
             !has_task &&
             (timeout == -1); // 退出时忽略 poller 上监听的事件，如之前 listen 的端口之类的
