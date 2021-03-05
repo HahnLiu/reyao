@@ -28,7 +28,7 @@ Scheduler::Scheduler(int thread_num,
 
 
 Scheduler::~Scheduler() {
-
+    stop();
 }
 
 void Scheduler::init() {
