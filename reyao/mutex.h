@@ -35,7 +35,7 @@ public:
     ~Condition();
 
     void wait();
-    void waitForSeconds(int seconds);
+    bool waitForSeconds(int seconds);
     void notify();
     void notifyAll();
 

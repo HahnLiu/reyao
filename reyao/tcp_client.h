@@ -12,7 +12,7 @@ public:
     typedef std::function<void(Socket::SPtr)> ConnectCallBack;
 
     TcpClient(Scheduler* sche, IPv4Address::SPtr addr);
-    ~TcpClient() { LOG_INFO << "~TcpCLient"; }
+    ~TcpClient() { LOG_DEBUG << "~TcpCLient"; }
 
     bool start();
     void stop();

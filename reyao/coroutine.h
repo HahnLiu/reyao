@@ -5,11 +5,14 @@
 #include "reyao/stackalloc.h"
 
 #include <ucontext.h>
+#include <assert.h>
 
 #include <memory>
 #include <functional>
 
 namespace reyao {
+
+class Worker;
 
 class Coroutine : public std::enable_shared_from_this<Coroutine> {
 public:
@@ -57,6 +60,16 @@ private:
     uint64_t id_ = 0;
     ucontext_t context_;
     State state_ = INIT;
+};
+
+// wait保存协程，notify将协程添加到任务队列
+class CoroutineCondition {
+public:
+    void wait();
+    void notify();
+private:
+    Worker* worker_;
+    Coroutine::SPtr co_;
 };
 
 } //namespace reyao

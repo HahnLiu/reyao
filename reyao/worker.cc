@@ -116,7 +116,7 @@ void Worker::idle() {
     while (true) {
         int64_t timeout = 0;
         if (canStop(timeout)) {
-            LOG_INFO << "name=" << getName()
+            LOG_DEBUG << "name=" << getName()
                      << " idle exit";
             break;
         }
@@ -130,7 +130,7 @@ void Worker::idle() {
 
 void Worker::stop() {
     running_ = false;
-    LOG_INFO << "worker running_:" << running_;
+    LOG_DEBUG << "worker running_:" << running_;
     notify();
 }
 

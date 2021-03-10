@@ -95,7 +95,8 @@ std::string Coroutine::toString(State state) {
 }
 
 void Coroutine::YieldToSuspend() {
-    auto cur = GetCurCoroutine();
+    // FIXME:
+    auto cur = GetCurCoroutine().get();
     assert(cur->state_ == RUNNING);
     cur->state_ = SUSPEND;
     cur->yield();
@@ -149,5 +150,15 @@ void Coroutine::Entry() {
     raw_ptr->yield();
 }
 
+void CoroutineCondition::wait() {
+        assert(Coroutine::GetCurCoroutine());
+        worker_ = Worker::GetWorker();
+        co_ = Coroutine::GetCurCoroutine();
+        Coroutine::YieldToSuspend();
+    }
+
+void CoroutineCondition::notify() {
+    worker_->addTask(co_);
+}
 
 } // namespace reyao

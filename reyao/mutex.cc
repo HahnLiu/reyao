@@ -1,5 +1,7 @@
 #include "reyao/mutex.h"
 
+#include "errno.h"
+
 namespace reyao {
 
 Mutex::Mutex() {
@@ -38,11 +40,11 @@ void Condition::wait() {
     pthread_cond_wait(&cond_, mutex_.getMutex());
 }
 
-void Condition::waitForSeconds(int seconds) {
+bool Condition::waitForSeconds(int seconds) {
     struct timespec interval;
     clock_gettime(CLOCK_REALTIME, &interval);
     interval.tv_sec += static_cast<time_t> (seconds);
-    pthread_cond_timedwait(&cond_, mutex_.getMutex(), &interval);
+    return ETIMEDOUT == pthread_cond_timedwait(&cond_, mutex_.getMutex(), &interval);
 }
 
 //最少唤醒一个线程
