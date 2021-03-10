@@ -49,7 +49,7 @@ void hook_init() {
         return;
     }
 #define XX(name) name ## _origin = (name ## Func_t)dlsym(RTLD_NEXT, #name);
-    //将HOOK-FUNC里的函数展开执行XX(name)宏
+    //将 HOOK-FUNC 里的函数展开执行 XX(name) 宏
     HOOK_FUNC(XX);
 #undef XX
 }
@@ -60,7 +60,7 @@ struct HookIniter {
     }
 };
 
-static HookIniter s_hook_initer; //在main之前hook_init()
+static HookIniter s_hook_initer; //在 main 之前 hook_init()
 
 bool IsHookEnable() {
     return t_hook_enable;
@@ -74,6 +74,11 @@ struct timer_info {
     int cancelled = 0;
 };
 
+// 在 socket 函数中，除了 connect 函数以外都可以执行 do_io 的底层逻辑
+// 进行读写操作，如果读写不成功，则放入调度器的 epoller 的 IO 事件等待队列
+// 对于 connect 函数，由于其原生函数返回错误码，所以需要单独作为写事件放进 IO 队列
+// 并在超时返回时设置错误码
+
 template <typename OriginFunc, typename ... Args>
 static ssize_t do_io(int fd, OriginFunc func, const char* hook_func_name,
                      uint32_t type, int timeout_so,  Args&& ... args) {
@@ -85,7 +90,6 @@ static ssize_t do_io(int fd, OriginFunc func, const char* hook_func_name,
     LOG_DEBUG << "in do_io " << "fd= " << fd << " hook_func=" << hook_func_name;
     auto fdctx = g_fdmanager->getFdContext(fd);
     if (!fdctx) {
-        //不是socket fd
         return func(fd, std::forward<Args>(args)...);
     }
     
@@ -93,42 +97,46 @@ static ssize_t do_io(int fd, OriginFunc func, const char* hook_func_name,
         errno = EBADF;
         return -1;
     }
-    //TODO: getUserNonBlock
+
+    // 用户将 sockfd 设置成非阻塞，则直接对非阻塞的 sockfd 进行非阻塞 io 操作
+    // 如果 io 操作没准备好，则直接返回 EWOULDBLOCK，与原生函数一致
     if (!fdctx->isSocketFd() || fdctx->getUserNonBlock()) {
         return func(fd, std::forward<Args>(args)...);
     }
 
+    // 获取 sockfd 设置的超时时间（通过 setsockopt 的 SO_RCVTIMEO 和 SO_SNDTIMEO）
     int64_t timeout = fdctx->getTimeout(timeout_so);
     std::shared_ptr<timer_info> tinfo(new timer_info);
 
-retry:
+retry:  
+    // 对非阻塞的 sockfd 调用一次 io 函数，如果没准备好（返回 EAGAIN）
+    // 则放入 epoll 队列中等待，则设置定时器，超时时取消 epoll 事件并直接返回
     ssize_t n = func(fd, std::forward<Args>(args)...);
     while (n == -1 && errno == EINTR) {
         n = func(fd, std::forward<Args>(args)...);
     }
-    if (n == -1 && errno == EAGAIN) { //没有数据来
-        // LOG_DEBUG << "fd=" << fd << " hook_name=" << hook_func_name << " need to addevent"; 
-
-        auto worker = Worker::GetWorker();
+    if (n == -1 && errno == EAGAIN) {
         Timer::SPtr timer;
         std::weak_ptr<timer_info> winfo(tinfo);
 
-        //设置读写事件的超时时间
+        // 设置定时器
         if (timeout != -1) {                                                                 
-            timer = worker->getScheduler()->addConditonTimer(timeout, [winfo, fd, type]() {
+            timer = Worker::GetScheduler()->addConditonTimer(timeout, [winfo, fd, type]() {
                 auto t = winfo.lock();
-                //没有超时，不触发事件
+                // winfo 观察 tinfo 是否存在以判断 do_io 函数是否返回
                 if (!t || t->cancelled) {
                     return;
                 }
-                //触发超时事件，将该timer的tinfo设为ETIMEOUT表示读写事件已超时
                 t->cancelled = ETIMEDOUT;
-                //触发fd的超时事件
+                // 直接触发 IO 事件，继续执行当前协程
+                // 发现 cancelled 标志为 ETIMEDOUT 时直接返回
                 Worker::HandleEvent(fd, type);
             }, winfo);
         }
 
-        //添加fd的回调，如果添加失败，则取消记录超时的定时器
+        // 将 sockfd 添加到线程的 epoll 队列中，
+        // 并将当前协程放入 epoll 队列的 IOEvent 中，触发 IO 事件时则继续执行该协程
+        // 如果添加失败，则取消记录超时的定时器并直接返回
         if (!Worker::AddEvent(fd, type)) {
             LOG_ERROR << hook_func_name << "addEvent("
                         << fd << ". " << type << ")";
@@ -136,16 +144,14 @@ retry:
                 timer->cancel();
                 return -1;
             }
-        } else {
-            // LOG_DEBUG << "fd=" << fd << " hook_func=" << hook_func_name << " yield to hold";
+            // 主动让出执行
             Coroutine::YieldToSuspend();
 
-            //触发了读写事件或触发超时
             if (timer) {
-                //TODO: 没有触发超时时取消超时事件
+                // 在超时时间内触发 IO 事件
                 timer->cancel();
             }
-            //该事件已超时，不在goto读写数据，直接返回-1
+            //该事件已超时，直接返回
             if (tinfo->cancelled) {
                 errno = tinfo->cancelled;
                 return -1;
@@ -154,17 +160,19 @@ retry:
         }
     }
 
-    // LOG_DEBUG << "do_io func=" << hook_func_name << " " << fd << ":" << n << " bytes";
     return n;
 }
     
-} //namespace reyao
+} // namespace reyao
 
 extern "C" {
 
 #define XX(name) name ## Func_t name ## _origin = nullptr;
     HOOK_FUNC(XX);
 #undef XX
+
+// sleep 系列函数统一用调度器的定时器实现
+// 触发定时事件时将当前协程重新加入调度器
 
 unsigned int sleep(unsigned int seconds) {
     if (!reyao::t_hook_enable) {
@@ -280,6 +288,7 @@ int connect_with_timeout(int sockfd, const struct sockaddr* addr,
         LOG_ERROR << "connect addEvent(" << sockfd << ", WRITE) errno=" << strerror(errno);
     }
 
+    // 读取错误码并返回，与原生 connect 返回值保持一致
     int error = 0;
     socklen_t len = sizeof(int);
     if (getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &error, &len)) {
@@ -388,8 +397,6 @@ int fcntl(int fd, int cmd, ... /* arg */ ) {
     va_list va;
     va_start(va, cmd);
     switch(cmd) {
-        //TODO:
-        //更新fdcontext的NoBlock标志
         case F_SETFL:
             {
                 int arg = va_arg(va, int);
@@ -398,11 +405,13 @@ int fcntl(int fd, int cmd, ... /* arg */ ) {
                 if(!fdctx || fdctx->isClose() || !fdctx->isSocketFd()) {
                     return fcntl_origin(fd, cmd, arg);
                 }
-                //用户设置NONBLOCK //TODO:
+                // 只针对 sockfd
+
+                // 用户设置 NONBLOCK
                 fdctx->setUserNonBlock(arg & O_NONBLOCK);
                 
-                //对于由fdmanager管理的socketfd，应该由fdmanager来设置非阻塞
-                //而忽略用户自己的设置
+                // 对于是否真正地对 fd 设置非阻塞标志，看的是 fdctx 中的 sys_non_block 标志
+                // sys_non_block 在初始化 fdctx 时默认为 true
                 if(fdctx->getSysNonBlock()) {
                     arg |= O_NONBLOCK;
                 } else {
@@ -419,8 +428,10 @@ int fcntl(int fd, int cmd, ... /* arg */ ) {
                 if(!fdctx || fdctx->isClose() || !fdctx->isSocketFd()) {
                     return arg;
                 }
-                //对于由fdmanager管理的socketfd，应该由fdmanager来设置非阻塞
-                //而忽略用户自己的设置
+                // 只针对 sockfd
+
+                // 用户读写 sockfd 的 NonBlock 标志，其实只是将结果放在 fdctx 的 user_non_bolck 中
+                // 使得返回结果看起来与原生函数一致，实际是否阻塞看的是看的是 fdctx 中的 sys_non_block 标志
                 if(fdctx->getUserNonBlock()) {
                     return arg | O_NONBLOCK;
                 } else {
@@ -447,19 +458,20 @@ int fcntl(int fd, int cmd, ... /* arg */ ) {
             }
             break;
 
-        case F_GETFD:
-        case F_GETOWN:
-        case F_GETSIG:
-        case F_GETLEASE:
-#ifdef F_GETPIPE_SZ
-        case F_GETPIPE_SZ:
-#endif
-        case F_GET_SEALS:
-            {
-                va_end(va);
-                return fcntl_origin(fd, cmd);
-            }
-            break;
+            // 没有多余参数，默认分支足够
+//         case F_GETFD:
+//         case F_GETOWN:
+//         case F_GETSIG:
+//         case F_GETLEASE:
+// #ifdef F_GETPIPE_SZ
+//         case F_GETPIPE_SZ:
+// #endif
+//         case F_GET_SEALS:
+//             {
+//                 va_end(va);
+//                 return fcntl_origin(fd, cmd);
+//             }
+//             break;
 
         case F_SETLK:
         case F_SETLKW:
@@ -512,6 +524,7 @@ int ioctl(int fd, unsigned long request, ...) {
         if (!fdctx || fdctx->isClose() || !fdctx->isSocketFd()) {
             return ioctl_origin(fd, request, arg);
         }
+        // 只针对 sockfd
         fdctx->setUserNonBlock(user_noblock);
     }
     return ioctl_origin(fd, request, arg);
@@ -528,6 +541,7 @@ int setsockopt(int sockfd, int level, int optname,
         return setsockopt_origin(sockfd, level, optname, optval, optlen);
     }
     if (level == SOL_SOCKET) {
+        // 在设置 sockfd 超时的同时更新 fdctx 的超时时间
         if (optname == SO_RCVTIMEO || optname == SO_SNDTIMEO) {
             auto fdctx = g_fdmanager->getFdContext(sockfd);
             if (fdctx) {

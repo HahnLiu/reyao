@@ -25,7 +25,6 @@ void FdContext::init() {
         if ((flag & O_NONBLOCK) == 0) {
             fcntl_origin(fd_, F_SETFL, flag | O_NONBLOCK);
         }
-        // LOG_DEBUG << "set fd:" << fd_ << "nonblock";
         is_sys_nonblock_ = true;
     }
 }

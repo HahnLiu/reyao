@@ -7,7 +7,8 @@
 
 namespace reyao {
 
-static thread_local Worker* t_worker = nullptr;             //线程的调度器
+static thread_local Worker* t_worker = nullptr; 
+static thread_local Scheduler* t_scheduler = nullptr;
 
 Worker::Worker(Scheduler* scheduler,
                const std::string& name,
@@ -50,8 +51,13 @@ bool Worker::HandleAllEvent(int fd) {
     return worker->poller_.handleAllEvent(fd);
 }
 
+Scheduler* Worker::GetScheduler() {
+    return t_scheduler;
+}
+
 void Worker::run() {
     t_worker = this;
+    t_scheduler = scheduler_;
     Coroutine::InitMainCoroutine();
     SetHookEnable(true);
     LOG_DEBUG << "thread set hook";
@@ -76,11 +82,14 @@ void Worker::run() {
         if (task.co && 
             task.co->getState() != Coroutine::DONE &&
             task.co->getState() != Coroutine::EXCEPT) {
-            // LOG_DEBUG << "take a co";
             task.co->resume();
+            // 调度器执行完协程后，不应保留协程对象，如果协程主动让出
+            // 则应该保存好协程对象，并放入调度器的任务队列中重新调度
             task.reset();
         } else if (task.func) {
-            // LOG_DEBUG << "take a func";
+            // 对于回调任务，调度器创建一个函数协程对象执行
+            // 如果在回调中主动让出，则函数协程 reset
+            // 如果回调执行完并返回，则下一个回调可以复用当前函数协程的栈
             if (co_func) {
                 co_func->reuse(task.func);
             } else {
@@ -92,14 +101,11 @@ void Worker::run() {
             }
             task.reset();
         } else {
-            // LOG_DEBUG << "no task";
             if (idle->getState() == Coroutine::DONE) {
                 break;
             }
             idle_ = true;
-            // LOG_DEBUG << "in idle";
             idle->resume();
-            // LOG_DEBUG << "from idle";
             idle_ = false;
         }
     }
@@ -108,7 +114,7 @@ void Worker::run() {
 void Worker::idle() {
     const uint64_t MAX_EVENTS = 256;
     epoll_event* events = new epoll_event[MAX_EVENTS]();
-    //让智能指针接管资源以自动释放
+    // 让智能指针接管资源以自动释放
     std::shared_ptr<epoll_event> sptr_events(events, [](epoll_event* ptr) {
         delete[] ptr;
     });
@@ -154,4 +160,4 @@ bool Worker::canStop(int64_t& timeout) {
             (timeout == -1); // 退出时忽略 poller 上监听的事件，如之前 listen 的端口之类的
 }
 
-} //namespace reyao
+} // namespace reyao

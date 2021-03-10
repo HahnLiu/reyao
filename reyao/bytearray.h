@@ -29,19 +29,12 @@ public:
     void writeUint32(uint32_t value);
     void writeInt64(int64_t value);
     void writeUint64(uint64_t value);
-    uint32_t encodeZigzag32(const int32_t& value);
-    uint64_t encodeZigzag64(const int64_t& value);
-    void writeVarInt32(int32_t value);
-    void writeVarUint32(uint32_t value);
-    void writeVarInt64(int64_t value);
-    void writeVarUint64(uint64_t value);
     void writeFloat(float value);
     void writeDouble(double value);
     void writeString(const std::string& value);
     void writeString16(const std::string& value);
     void writeString32(const std::string& value);
     void writeString64(const std::string& value);
-    void writeStringVarint(const std::string& value);
 
 
     int8_t readInt8();
@@ -52,23 +45,16 @@ public:
     uint32_t readUint32();
     int64_t readInt64();
     uint64_t readUint64();
-    int32_t decodeZigzag32(const uint32_t& value);
-    int64_t decodeZigzag64(const uint64_t& value);
-    int32_t readVarInt32();
-    uint32_t readVarUint32();
-    int64_t readVarInt64();
-    uint64_t readVarUint64();
     float readFloat();
     double readDouble();
     std::string readString16();
     std::string readString32();
     std::string readString64();
-    std::string readStringVarint();
 
-    //获取可以写入的内存
+    // 获取可以写入的内存
     // const char* getWriteArea(size_t len);
     char* getWriteArea(size_t len);
-    //只读数据，读取到iovec结构
+    //只读数据，读取到 iovec 结构
     const char* getReadArea(size_t* len) const;
 
     void reset();

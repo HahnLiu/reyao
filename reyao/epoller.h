@@ -24,40 +24,38 @@ public:
     // EPOLLOUT --> 0x4 
     struct IOEvent {
         struct EventCtx {
-            Worker* worker = nullptr;     //待执行io任务所在的调度器
-            Coroutine::SPtr co;           //io事件以协程的方式等待执行
-            Func func;                    //io事件以回调的方式等待执行
+            Worker* worker = nullptr;
+            Coroutine::SPtr co;
+            Func func;
         };
 
         IOEvent(int f):fd(f) {}
         EventCtx& getEventCtx(int type);
         void resetEventCtx(int type);
-        //将对应事件的任务加入任务队列
+        //将 IO 事件的任务加入调度器
         void triggleEvent(int type);
 
-        EventCtx read_event;    //读事件
-        EventCtx write_event;   //写事件
-        int types = 0;          //等待事件类型
-        int fd;                 //文件描述符
+        EventCtx read_event;    // 读事件
+        EventCtx write_event;   // 写事件
+        int types = 0;          // 等待事件类型
+        int fd;                 // 文件描述符
     };
 
 public:
     Epoller(Worker* worker);
     ~Epoller();
 
-    //添加io事件
+    // 添加事件
     bool addEvent(int fd, int type, Func func = nullptr);
-    //从epoll队列中删除io事件
+    // 从 io 队列中删除事件
     bool delEvent(int fd, int type); 
-    //触发指定的待执行任务
+    // 触发指定的事件并从队列中移除
     bool handleEvent(int fd, int type);
-    //触发所有注册的待执行任务
+    // 触发读写事件并从队列中移除
     bool handleAllEvent(int fd);
-    //等待并处理超时事件与到来事件
+    // epoll_wait
     void wait(epoll_event* events, int maxcnt, int timeout);
-    //是否还有IO事件没触发
     bool hasEvent() const { return pending_events_ != 0; }
-    //从epoll_wait中唤醒
     void notify();
 
     int getEventCount() const { return pending_events_; }
@@ -78,7 +76,10 @@ private:
     int epfd_;
     int eventfd_;
     std::atomic<size_t> pending_events_{0};
+    // 为了加快速度，直接用 vector 存放 IO 事件
+    // 且当一个 sockfd 触发事件并关闭后，也不释放内存
+    // 下一个相同的 sockfd 可以直接复用，是空间换事件的考虑
     std::vector<IOEvent*> io_events_;
 };
 
-} //namespace reyao
+} // namespace reyao

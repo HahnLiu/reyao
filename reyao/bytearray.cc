@@ -68,54 +68,6 @@ void ByteArray::writeUint64(uint64_t value) {
     write(&value, sizeof(value));
 }
 
-uint32_t ByteArray::encodeZigzag32(const int32_t& value) {
-    if (value < 0) {
-        return ((uint32_t)(-value)) * 2 - 1;
-    } else {
-        return value * 2;
-    }
-}
-
-uint64_t ByteArray::encodeZigzag64(const int64_t& value) {
-    if (value < 0) {
-        return ((uint64_t)(-value)) * 2 - 1;
-    } else {
-        return value * 2;
-    }
-}
-
-void ByteArray::writeVarInt32(int32_t value) {
-    writeVarUint32(encodeZigzag32(value));
-}
-
-void ByteArray::writeVarUint32(uint32_t value) {
-    uint8_t temp[5];
-    uint8_t i = 0;
-    //一次取出7位，并在最高位置一构成一个字节
-    //如果val大于28位，则需要取5次，最后变为5个字节
-    while (value > 0x7F) {
-        temp[i++] = (value & 0x7F) | 0x80;
-        value >>= 7;
-    }
-    temp[i++] = value;
-    write(temp, i);
-}
-
-void ByteArray::writeVarInt64(int64_t value) {
-    writeVarUint64(encodeZigzag64(value));
-}
-
-void ByteArray::writeVarUint64(uint64_t value) {
-    uint8_t temp[10];
-    uint8_t i = 0;
-    while (value > 0x7F) {
-        temp[i++] = (value & 0x7F) | 0x80;
-        value >>= 7;
-    }
-    temp[i++] = value;
-    write(temp, i);
-}
-
 void ByteArray::writeFloat(float value) {
     uint32_t v;
     memcpy(&v, &value, sizeof(value));
@@ -145,11 +97,6 @@ void ByteArray::writeString32(const std::string& value) {
 
 void ByteArray::writeString64(const std::string& value) {
     writeUint64(value.size());
-    write(value.c_str(), value.size());
-}
-
-void ByteArray::writeStringVarint(const std::string& value) {
-    writeVarUint64(value.size());
     write(value.c_str(), value.size());
 }
 
@@ -219,52 +166,6 @@ uint64_t ByteArray::readUint64() {
     return v;
 }
 
-//TODO:
-int32_t ByteArray::decodeZigzag32(const uint32_t& value) {
-    //左移消掉*2  
-    return (value >> 1) ^ -(value & 1);
-}
-
-int64_t ByteArray::decodeZigzag64(const uint64_t& value) {
-    return (value >> 1) ^ -(value & 1);
-}
-
-int32_t ByteArray::readVarInt32() {
-    return decodeZigzag32(readVarUint32());
-}
-
-uint32_t ByteArray::readVarUint32() {
-    uint32_t result = 0;
-    for (int i = 0; i < 32; i+= 7) {
-        uint8_t b = readUint8();
-        if (b < 0x80) {
-            result |= ((uint32_t)b) << i;
-            break;
-        } else {
-            result |= ((uint32_t) (b & 0x7f) << i);
-        }
-    }
-    return result;
-}
-
-int64_t ByteArray::readVarInt64() {
-    return decodeZigzag64(readVarUint64());
-}
-
-uint64_t ByteArray::readVarUint64() {
-    uint64_t result = 0;
-    for (int i = 0; i < 64; i+= 7) {
-        uint8_t b = readUint8();
-        if (b < 0x80) {
-            result |= ((uint32_t)b) << i;
-            break;
-        } else {
-            result |= ((uint32_t) (b & 0x7f) << i);
-        }
-    }
-    return result;
-}
-
 float ByteArray::readFloat() {
     uint32_t v = readUint32();
     float result;
@@ -296,14 +197,6 @@ std::string ByteArray::readString32() {
 }
 
 std::string ByteArray::readString64() {
-    uint64_t len = readUint64();
-    std::string buf;
-    buf.resize(len);
-    read(&buf[0], len);
-    return buf;
-}
-
-std::string ByteArray::readStringVarint() {
     uint64_t len = readUint64();
     std::string buf;
     buf.resize(len);

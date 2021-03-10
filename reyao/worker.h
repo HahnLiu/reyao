@@ -17,7 +17,7 @@ class Scheduler;
 
 const int kStackSize = 128 * 1024; //默认分配的协程栈大小
 
-//线程的协程调度器
+// 线程的协程调度器
 class Worker : public NoCopyable {
 public:
     typedef std::shared_ptr<Worker> SPtr;
@@ -28,33 +28,34 @@ public:
            int stack_size = kStackSize);
     ~Worker();
 
-    //当前线程的调度器
+    // 当前线程的调度器
     static Worker* GetWorker();
-    //添加io事件
+    // 添加 fd 到 IO 队列，可以指定回调，如果不指定则默认回调为当前协程
     static bool AddEvent(int fd, int type, Func func = nullptr);
-    //删除io事件
+    // 从 IO 队列中删除 fd 的读写事件
     static bool DelEvent(int fd, int type); 
-    //触发指定的待执行任务
+    //触发指定读写事件并将该读写事件从 IO 队列中移除
     static bool HandleEvent(int fd, int type);
-    //触发所有注册的待执行任务
+    //触发该 fd 的读写事件并从 IO 队列中移除
     static bool HandleAllEvent(int fd);
     
     Scheduler* getScheduler() { return scheduler_; }
+    static Scheduler* GetScheduler();
     const std::string& getName() { return name_; }
 
-    //启动调度器
+    // 启动调度器
     void run();
-    //调度器没任务时等待IO事件
+    // 调度器没任务时等待用 epoll 等待 IO 事件
     void idle();
-    //停止调度器，由上层调度器池Scheduler调用
+    // 停止调度器
     void stop();
-    //唤醒调度器
+    // 从 epoll 中唤醒线程
     void notify();
 
     bool isIdle() { return idle_; }
 
 public:
-    //调度器的任务，可以是co或者func
+    // 调度器的任务，可以是 co 或者 func
     struct Task {
         Func func = nullptr;
         Coroutine::SPtr co = nullptr;
@@ -115,24 +116,19 @@ private:
         return need_notify;
     }
 
-    //调度器停止应满足条件：
-    //1.running_状态为false
-    //2.调度器无任务
-    //3.没有定时事件
-    //4.poller没有等待的IO事件
     bool canStop(int64_t& timeout);
 
 private:
-    Scheduler* scheduler_;      //管理Worker的调度器池
-    int stack_size_;            //调度器管理的协程栈大小
-    std::string name_;          //调度器名称
+    Scheduler* scheduler_;    
+    int stack_size_;           
+    std::string name_;          
 
-    bool running_;              //运行状态
-    Mutex mutex_;               //互斥锁
-    std::list<Task> tasks_;     //调度器任务队列
-    bool idle_;                 //调度器是否空闲
-    Epoller poller_;            //epoll封装类
+    bool running_;           
+    Mutex mutex_;           
+    std::list<Task> tasks_;     
+    bool idle_;               
+    Epoller poller_;      
 };
 
 
-} //namespace reyao
+} // namespace reyao

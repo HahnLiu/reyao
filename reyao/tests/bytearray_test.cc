@@ -35,10 +35,6 @@ void test1() {
     XX(int64_t, 100, writeInt64, readInt64);
     XX(uint64_t, 100, writeUint64, readUint64);
 
-    XX(int32_t, 100, writeVarInt32, readVarInt32);
-    XX(uint32_t, 100, writeVarUint32, readVarUint32);
-    XX(int64_t, 100, writeVarInt64, readVarInt64);
-    XX(uint64_t, 100, writeVarUint64, readVarUint64);
 #undef XX
 }
 
@@ -70,10 +66,6 @@ void test2() {
     XX(int64_t, 10, writeInt64, readInt64);
     XX(uint64_t, 10, writeUint64, readUint64);
 
-    XX(int32_t, 10, writeVarInt32, readVarInt32);
-    XX(uint32_t, 10, writeVarUint32, readVarUint32);
-    XX(int64_t, 10, writeVarInt64, readVarInt64);
-    XX(uint64_t, 10, writeVarUint64, readVarUint64);
 #undef XX   
 }
 

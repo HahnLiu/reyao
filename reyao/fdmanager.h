@@ -12,7 +12,11 @@ namespace reyao {
 
 #define g_fdmanager reyao::Singleton<reyao::FdManager>::GetInstance()
 
-//TODO: enable_shared_from_this?
+// FdContext 管理所有 sockfd，对于 sockfd，默认设置非阻塞并设置 is_sys_nonblock_
+// 使得在协程调度器时对 sockfd 进行 socket 相关函数时可以通过协程调度和 IO 复用来模拟同步调用的结果
+// 而 timeout 成员记录了对 sockfd 的超时时间，超时则不再等待事件直接返回
+// 同时 is_user_nonblock_ 是为了让用户可以对 sockfd 执行原生的非阻塞 IO 操作
+// 即调用 IO 函数时直接返回，不再放到协程调度器中的 epoll 等待事件
 class FdContext : public std::enable_shared_from_this<FdContext> {
 public:
     typedef std::shared_ptr<FdContext> SPtr;

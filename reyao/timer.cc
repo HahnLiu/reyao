@@ -134,7 +134,6 @@ Timer::SPtr TimeManager::addTimer(int64_t interval, std::function<void()> func,
 }
 
 static void OnTimer(std::weak_ptr<void> weak_cond, std::function<void()> func) {
-    // LOG_DEBUG << "on timer";
      std::shared_ptr<void> temp = weak_cond.lock();
      if (temp) {
          func();

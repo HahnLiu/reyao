@@ -33,6 +33,7 @@ void Epoller::IOEvent::triggleEvent(int type) {
     types = (types & ~type);
     EventCtx& ctx = getEventCtx(type);
 
+    // 加入调度器后 IOEvent 不再保存任务对象
     if (ctx.co) {
         ctx.worker->addTask(&ctx.co);
     } else {
@@ -47,7 +48,6 @@ Epoller::Epoller(Worker* worker)
     assert(epfd_ >= 0);
     eventfd_ = eventfd(0, EFD_NONBLOCK);
     assert(eventfd_ >= 0);
-    // LOG_DEBUG << "eventfd_=" << eventfd_;
     epoll_event epevent;
     epevent.data.fd = eventfd_;
     epevent.events = EPOLLET | EPOLLIN;
@@ -68,7 +68,7 @@ bool Epoller::addEvent(int fd, int type, Func func) {
         resize(fd * 1.5);
     }
     event = io_events_[fd];
-    //事件已注册
+    // 事件已注册
     if (event->types & type) {
         LOG_ERROR << "addEvent(" << fd
                   << ", " << type << ")"
@@ -78,7 +78,7 @@ bool Epoller::addEvent(int fd, int type, Func func) {
     int op = event->types ? EPOLL_CTL_MOD : EPOLL_CTL_ADD;
     epoll_event epevent;
     epevent.events = EPOLLET | event->types | type;
-    epevent.data.ptr = event;
+    epevent.data.ptr = event;   // 将 IOEvent 放入 epoll_event 中
     if (epoll_ctl(epfd_, op, fd, &epevent) == -1) {
         LOG_ERROR << "epoll_ctl(" << epfd_
                   << ", " << op << ", " << fd << ", "
@@ -107,7 +107,7 @@ bool Epoller::delEvent(int fd, int type) {
         return false;    
     }
     event = io_events_[fd];
-    //没有注册type事件
+  
     if (!(event->types & type)) {
         return false;
     }
@@ -129,10 +129,6 @@ bool Epoller::delEvent(int fd, int type) {
 
     event->types = new_types;
     event->resetEventCtx(type);
-    // if (op == EPOLL_CTL_DEL) {
-    //     io_events_.erase(fd);
-    //     delete event;
-    // }
     return true;
 }
 
@@ -142,12 +138,12 @@ bool Epoller::handleEvent(int fd, int type) {
         return false;    
     }
     event = io_events_[fd];
-    //没有注册type事件
+    // 没有注册 type 事件
     if (!(event->types & type)) {
         return false;
     }
 
-    //继续注册未触发事件
+    // 继续注册未触发事件
     int new_type = (event->types & ~type);
     int op = new_type ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
     epoll_event epevent;
@@ -174,9 +170,6 @@ bool Epoller::handleAllEvent(int fd) {
     event = io_events_[fd];
 
     if (event->types == 0) {
-        // io_events_.erase(fd);
-        // delete event;
-        // return true;
         return false;
     }
 
@@ -220,7 +213,7 @@ void Epoller::wait(epoll_event* events, int maxcnt, int timeout) {
                 break;
             }
         }
-        //获取超时事件回调，添加进任务队列
+        
         std::vector<Func> funcs;
         worker_->getScheduler()->expiredFunctions(funcs);
         if (!funcs.empty()) {
@@ -241,7 +234,7 @@ void Epoller::wait(epoll_event* events, int maxcnt, int timeout) {
 
             Epoller::IOEvent* io_event = (Epoller::IOEvent*)event.data.ptr;
             if (event.events & (EPOLLERR | EPOLLHUP)) { 
-                //peer关闭，标记socket注册的读写event，当作读写事件统一处理，即关闭连接
+                // peer关闭，标记 socket 注册的读写 event，当作读写事件统一处理，即关闭连接
                 event.events |= (EPOLLIN | EPOLLOUT) & io_event->types;
             }
             int real_events = 0;
@@ -253,11 +246,10 @@ void Epoller::wait(epoll_event* events, int maxcnt, int timeout) {
             }
 
             if ((io_event->types & real_events) == 0) {
-                //io_event的读写事件被取消，跳过处理该事件 //FIXME:
+                // io_event 的读写事件被取消，跳过处理该事件 
                 continue;
             }
 
-            //继续注册本次epoll_wait中没有触发的读写事件,
             int left_events = io_event->types & ~real_events;
             int op = left_events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
             event.events = EPOLLET & left_events;
@@ -277,11 +269,6 @@ void Epoller::wait(epoll_event* events, int maxcnt, int timeout) {
                 io_event->triggleEvent(EPOLLOUT);
                 --pending_events_;
             }
-       
-            // if (op == EPOLL_CTL_DEL) {
-            //     io_events_.erase(io_event->fd);
-            //     delete io_event;
-            // }
 
         }
 }
