@@ -11,27 +11,28 @@ namespace reyao {
 
 namespace rpc {
 
-// message对象序列化
+// message 对象序列化
 void ProtobufCodec::serializeToByteArray(ByteArray& ba, MessageSPtr msg) {
 
-    const std::string& type_name = msg->GetTypeName();
-    int32_t name_len = static_cast<int32_t>(type_name.size() + 1);
-    ba.writeInt32(name_len);
+    const std::string& typeName = msg->GetTypeName();
+    int32_t nameLen = static_cast<int32_t>(typeName.size() + 1);
+    ba.writeInt32(nameLen);
     
-    ba.write(type_name.c_str(), type_name.size());
+    ba.write(typeName.c_str(), typeName.size());
     ba.write("\0", 1);
 
-    int byte_size = msg->ByteSizeLong();
-    uint8_t * buf = reinterpret_cast<uint8_t*>(ba.getWriteArea(byte_size));
+    int byteSize = msg->ByteSizeLong();
+    uint8_t * buf = reinterpret_cast<uint8_t*>(ba.getWriteArea(byteSize));
     msg->SerializeWithCachedSizesToArray(buf);
-    ba.setWritePos(ba.getWritePos() + byte_size);
+    ba.setWritePos(ba.getWritePos() + byteSize);
 
-    int32_t check_sum = static_cast<int32_t>(adler32(1, reinterpret_cast<const Bytef*>(ba.peek()),
-                                                     static_cast<int>(ba.getReadSize())));
-    ba.writeInt32(check_sum);
-    assert(ba.getReadSize() == sizeof(name_len) + name_len + byte_size + sizeof(check_sum));
+    int32_t checkSum = static_cast<int32_t>(adler32(1, reinterpret_cast<const Bytef*>(ba.peek()),
+                                                    static_cast<int>(ba.getReadSize())));
+    ba.writeInt32(checkSum);
+    assert(ba.getReadSize() == sizeof(nameLen) + nameLen + byteSize + sizeof(checkSum));
     int32_t len = byteSwapOnLittleEndian(static_cast<int32_t>(ba.getReadSize()));
     ba.writePrepend(&len, sizeof(len));
+
 } 
 
 
@@ -49,30 +50,25 @@ ProtobufCodec::ErrMsg::SPtr ProtobufCodec::receive(MessageSPtr& msg) {
             if (len > kMaxMessageLen || len < kMinMessageLen) {
                 return std::make_shared<ErrMsg>(ErrorCode::kInvalidLength, "invalid length len= " + std::to_string(len));
             } else if (ba.getReadSize() >= static_cast<size_t>(len)) {
-                auto err_msg = std::make_shared<ErrMsg>(ErrorCode::kNoError, "no error");
-                msg = Parse(ba, len, err_msg);
-                return err_msg;
+                auto errMsg = std::make_shared<ErrMsg>(ErrorCode::kNoError, "no error");
+                msg = Parse(ba, len, errMsg);
+                return errMsg;
             }
         }
     }
     return std::make_shared<ErrMsg>(ErrorCode::kServerClosed, "closed by peer");
 }
 
-// 在只有类型名没有对象类型的情况下获得该类型的default_instance
-// 并通过其创建该类型的对象
-// 如 string payload，根据payload生成一个string对象
-google::protobuf::Message* ProtobufCodec::CreateMessage(const std::string& type_name) {
+
+google::protobuf::Message* ProtobufCodec::CreateMessage(const std::string& typeName) {
     google::protobuf::Message* msg = nullptr;
-    // 根据类型名获得其Descriptor
     const google::protobuf::Descriptor* descriptor
-        = google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName(type_name);
+        = google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName(typeName);
     
     if (descriptor) {
-        // 根据Descriptor获取default_instance
         const google::protobuf::Message* prototype 
             = google::protobuf::MessageFactory::generated_factory()->GetPrototype(descriptor);
         if (prototype) {
-            // 根据default_instance创建一个相同类型的对象实例
             msg = prototype->New();
         }
     }
@@ -86,50 +82,50 @@ int32_t asInt32(const char* buf) {
 	return byteSwapOnLittleEndian(be32);
 }
 
-MessageSPtr ProtobufCodec::Parse(ByteArray& ba, int len, ErrMsg::SPtr err_msg) {
+MessageSPtr ProtobufCodec::Parse(ByteArray& ba, int len, ErrMsg::SPtr errMsg) {
     MessageSPtr msg;
-    int32_t expect_checksum = asInt32(ba.peek() + len - kHeaderLen);
+    int32_t expectChecksum = asInt32(ba.peek() + len - kHeaderLen);
     int32_t checksum = static_cast<int32_t>(::adler32(1, reinterpret_cast<const Bytef*>(ba.peek()), 
                                              static_cast<int>(len - kHeaderLen)));
     
-    if (expect_checksum != checksum) {
-        err_msg->errcode = ErrorCode::kChecksumError;
-        err_msg->errstr = "checksum error checksum=" + std::to_string(checksum) + 
-                          "expected_checksum=" + std::to_string(expect_checksum);
+    if (expectChecksum != checksum) {
+        errMsg->errcode = ErrorCode::kChecksumError;
+        errMsg->errstr = "checksum error checksum=" + std::to_string(checksum) + 
+                          "expected_checksum=" + std::to_string(expectChecksum);
         return msg;
     }
 
-    int32_t name_len = ba.readInt32();
-    if (name_len < 2 || name_len > len - 2 * kHeaderLen) {
-        err_msg->errcode = ErrorCode::kInvalidNameLength;
-        err_msg->errstr = "invalid name length = " + std::to_string(name_len);
+    int32_t nameLen = ba.readInt32();
+    if (nameLen < 2 || nameLen > len - 2 * kHeaderLen) {
+        errMsg->errcode = ErrorCode::kInvalidNameLength;
+        errMsg->errstr = "invalid name length = " + std::to_string(nameLen);
         return msg;
     }
-    std::string name = std::string(ba.peek(), name_len - 1);
-    ba.setReadPos(ba.getReadPos() + name_len - 1);
+    std::string name = std::string(ba.peek(), nameLen - 1);
+    ba.setReadPos(ba.getReadPos() + nameLen - 1);
     if (static_cast<char>(ba.readInt8()) != '\0') {
-        err_msg->errcode = ErrorCode::kParseError;
-        err_msg->errstr = "invalid type name";
+        errMsg->errcode = ErrorCode::kParseError;
+        errMsg->errstr = "invalid type name";
         return msg;
     }
     msg.reset(CreateMessage(name));
     if (!msg) {
-        err_msg->errcode = ErrorCode::kUnknownMessageType;
-        err_msg->errstr = "type name = " + name;
+        errMsg->errcode = ErrorCode::kUnknownMessageType;
+        errMsg->errstr = "type name = " + name;
         return msg;
     }
 
     const char* payload = ba.peek();
-    int32_t payload_len = len - 2 * kHeaderLen - name_len;
-    if (!msg->ParseFromArray(payload, payload_len)) {
-        err_msg->errcode = ErrorCode::kParseError;
-        err_msg->errstr = "message " + name + " parse error";
+    int32_t payloadLen = len - 2 * kHeaderLen - nameLen;
+    if (!msg->ParseFromArray(payload, payloadLen)) {
+        errMsg->errcode = ErrorCode::kParseError;
+        errMsg->errstr = "message " + name + " parse error";
         return msg;
     }
 
     return msg;
 } 
 
-} //namespace rpc
+} // namespace rpc
 
-} //namespace reyao
+} // namespace reyao

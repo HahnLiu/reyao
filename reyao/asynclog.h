@@ -9,9 +9,8 @@
 
 namespace reyao {
 
-static const int kBufferSize = 4096; //异步日志缓冲区大小
+static const int kBufferSize = 4096; 
 
-//日志滚动和写入文件类
 class LogFile : public NoCopyable {
 public:
     LogFile();
@@ -21,26 +20,24 @@ public:
     void flush();
 
 private:
-    //NOTE: 如果1秒内写入超过64M，在RollFile时打开的是同一文件
     void rollFile();
     void getFileName(time_t& now, std::string& filename);
 
-    static const time_t kRollPerSeconds = 24 * 60 * 60;     //一天的秒数
-    static const long kFlushInterval = 3;                   //最快3秒一次将缓冲区刷新到内核中
-    static const size_t kCheckPerN = 1024;                  //每记录1024条日志检查是否滚动日志以及冲洗缓冲区
-    static const size_t kMaxFileSize = 64 * 1024 * 1024;    //每个log文件最大64M
-    static const int kFileBufSize = 64 * 1024;              //文件IO缓冲区大小
+    static const time_t kRollPerSeconds = 24 * 60 * 60;  
+    static const long kFlushInterval = 3;               
+    static const size_t kCheckRollPerN = 1024;           
+    static const size_t kMaxFileSize = 64 * 1024 * 1024;
+    static const int kFileBufSize = 64 * 1024; 
 
-    size_t count_ = 0;      //缓冲区的日志数
-    size_t writed_ = 0;     //文件已写大小
-    time_t last_flush_ = 0; //上一次刷新缓冲区时间
-    time_t last_roll_ = 0;  //上一次滚动日志文件时间
+    size_t count_ = 0;    
+    size_t writed_ = 0;    
+    time_t lastFlush_ = 0; 
+    time_t lastRoll_ = 0;  
     
-    FILE* fp_ = nullptr;        //文件IO指针
-    char fp_buf_[kFileBufSize]; //文件IO的缓冲区
+    FILE* fp_ = nullptr;   
+    char fp_buf_[kFileBufSize]; 
 };
 
-//异步写日志类
 class AsyncLog : public NoCopyable {
 public:
     typedef FixedBuffer<kBufferSize> Buffer;
@@ -52,19 +49,20 @@ public:
     void append(const char* logline, size_t len);
     void start();
     void stop();
-    bool isStart() { return running_;}
+    bool isStart() { return running_; }
 
 private:
     void threadFunc();
 
     bool running_;
+    bool exit_{false};
     Mutex mutex_;
     Condition cond_;
     CountDownLatch latch_;
     Thread thread_;
-    BufferUPtr curr_buffer_;
-    BufferUPtr next_buffer_;
+    BufferUPtr currBuffer_;
+    BufferUPtr backupBuffer_;
     BufferVec buffers_;
 };
 
-} //namespace reyao
+} // namespace reyao

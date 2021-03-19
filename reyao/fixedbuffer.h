@@ -12,7 +12,6 @@ namespace reyao {
 template <size_t SIZE>
 class FixedBuffer : public NoCopyable {
 public:
-
     void append(const char* data, size_t len) {   
         if (SIZE - pos_ >= len) {
             memcpy(data_ + pos_, data, len);
@@ -45,4 +44,4 @@ private:
     size_t pos_ = 0;
 };
 
-} //namespace reyao
+} // namespace reyao

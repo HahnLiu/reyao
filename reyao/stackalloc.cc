@@ -7,40 +7,42 @@
 
 namespace reyao {
 
-StackAlloc::StackAlloc(size_t stack_size, bool protect):
-    stack_size_(stack_size),
+StackAlloc::StackAlloc(size_t stackSize, bool protect):
+    stackSize_(stackSize),
     protect_(protect) {
-    if (stack_size != 0) {
+    if (stackSize != 0) {
         if (protect_) {
-            int page_size = getpagesize();
-            if (stack_size % page_size != 0) {
-                stack_size_ = (stack_size / page_size + 1) * page_size;
+            int pageSize = getpagesize();
+            if (stackSize % pageSize != 0) {
+                stackSize_ = (stackSize / pageSize + 1) * pageSize;
             } else {
-                stack_size_ = stack_size;
+                stackSize_ = stackSize;
             }
 
-            raw_stack_ = mmap(NULL, stack_size_ + page_size * 2,
-                              PROT_READ | PROT_WRITE,
+            rawStack_ = mmap(NULL, stackSize_ + pageSize * 2,
+                             PROT_READ | PROT_WRITE,
                              MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-            assert(raw_stack_ != nullptr);
-            assert(mprotect(raw_stack_, page_size, PROT_NONE) == 0);
-            assert(mprotect((void*)((char*)raw_stack_ + stack_size_ + page_size), page_size, PROT_NONE) == 0);
-            stack_ = (void*)((char*)raw_stack_ + page_size);
+            assert(rawStack_ != nullptr);
+            assert(mprotect(rawStack_, pageSize, PROT_NONE) == 0);
+            assert(mprotect((void*)((char*)rawStack_ + stackSize_ + pageSize), 
+                            pageSize, PROT_NONE) == 0);
+            stack_ = (void*)((char*)rawStack_ + pageSize);
         } else {
-            stack_ = malloc(stack_size_);
+            stack_ = malloc(stackSize_);
         }
     } else {
-        stack_size_ = 0;
+        stackSize_ = 0;
     }
 }
 
 StackAlloc::~StackAlloc() {
-    if (stack_size_ != 0) {
+    if (stackSize_ != 0) {
         if (protect_) {
-            int page_size = getpagesize();
-            assert(mprotect(raw_stack_, page_size, PROT_READ | PROT_WRITE) == 0);
-            assert(mprotect((void *)((char *)raw_stack_ + stack_size_ + page_size), page_size, PROT_READ | PROT_WRITE) == 0);
-            assert(munmap(raw_stack_, stack_size_ + page_size * 2) == 0);
+            int pageSize = getpagesize();
+            assert(mprotect(rawStack_, pageSize, PROT_READ | PROT_WRITE) == 0);
+            assert(mprotect((void *)((char *)rawStack_ + stackSize_ + pageSize), 
+                            pageSize, PROT_READ | PROT_WRITE) == 0);
+            assert(munmap(rawStack_, stackSize_ + pageSize * 2) == 0);
         } else {
             free(stack_);
         }
@@ -48,12 +50,5 @@ StackAlloc::~StackAlloc() {
     }
 }
 
-void* StackAlloc::top() {
-    return stack_;
-}
-
-size_t StackAlloc::size() {
-    return stack_size_;
-}
 
 } //namespace reyao

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8)
 project(reyao)
 
 set(CXX_FLAGS 
-    #  -ggdb 
+     -ggdb 
      -Wall
      -Werror
      -Wno-unused-result

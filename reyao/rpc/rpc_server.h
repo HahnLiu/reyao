@@ -56,6 +56,6 @@ private:
     HandlerMap handlers_;
 };
 
-} //namespace rpc
+} // namespace rpc
 
-} //namespace reyao
+} // namespace reyao

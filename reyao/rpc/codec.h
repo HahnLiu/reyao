@@ -13,7 +13,7 @@ namespace rpc {
 typedef std::shared_ptr<::google::protobuf::Message> MessageSPtr;
 
 /*
- Rpc Protobuf数据格式：
+ Rpc Protobuf 数据格式：
  len: 数据包长度
  name_len: 类型名长度
  name: 类型名
@@ -52,8 +52,8 @@ public:
 private:
     void serializeToByteArray(ByteArray& ba, MessageSPtr msg);
 
-    static google::protobuf::Message* CreateMessage(const std::string& type_name);
-    static MessageSPtr Parse(ByteArray& ba, int len, ErrMsg::SPtr err_msg);
+    static google::protobuf::Message* CreateMessage(const std::string& typeName);
+    static MessageSPtr Parse(ByteArray& ba, int len, ErrMsg::SPtr errMsg);
 
 
     const static int kHeaderLen = sizeof(int32_t);
@@ -64,8 +64,8 @@ private:
     SocketStream ss_;
 };
 
-} //namespace rpc
+} // namespace rpc
 
-} //namespace reyao 
+} // namespace reyao 
 
 

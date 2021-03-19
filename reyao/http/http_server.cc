@@ -2,12 +2,12 @@
 
 namespace reyao {
 
-HttpServer::HttpServer(Scheduler* scheduler,
+HttpServer::HttpServer(Scheduler* sche,
                        IPv4Address::SPtr addr,
-                       bool keep_alive) 
-    : TcpServer(scheduler, addr, "HttpServer"),
-      keep_alive_(keep_alive) {
-    dispatch_.reset(new ServletDispatch); //TODO: server name
+                       bool keepAlive) 
+    : TcpServer(sche, addr, "HttpServer"),
+      keepAlive_(keepAlive) {
+    dispatch_.reset(new ServletDispatch);
 }
 
 void HttpServer::handleClient(Socket::SPtr client) {
@@ -25,7 +25,7 @@ void HttpServer::handleClient(Socket::SPtr client) {
         }
 
         HttpResponse rsp(req.getVersion(),
-                         req.isKeepAlive() && keep_alive_);
+                         req.isKeepAlive() && keepAlive_);
   
         dispatch_->handle(req, &rsp, session);
         // rsp.addHeader("Server", "reyao");
@@ -34,7 +34,7 @@ void HttpServer::handleClient(Socket::SPtr client) {
  
         session.sendResponse(&rsp);
 
-        if (!keep_alive_ || !req.isKeepAlive()) {
+        if (!keepAlive_ || !req.isKeepAlive()) {
             break;
         }
     } while (true);
@@ -42,4 +42,4 @@ void HttpServer::handleClient(Socket::SPtr client) {
     session.close();
 }
 
-} //namespace reyaop
+} // namespace reyaop

@@ -28,7 +28,7 @@ extern "C" {
     __lib_close
     __dup*
     __new_fclose
-
+    gethostbyname
 */
 
 typedef unsigned int (*sleepFunc_t)(unsigned int seconds);
@@ -113,5 +113,5 @@ typedef int (*setsockoptFunc_t)(int sockfd, int level, int optname,
 extern setsockoptFunc_t setsockopt_origin;
 
 
-} //extern "C"
+} // extern "C"
 

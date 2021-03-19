@@ -10,11 +10,11 @@ namespace reyao {
 static thread_local Worker* t_worker = nullptr; 
 static thread_local Scheduler* t_scheduler = nullptr;
 
-Worker::Worker(Scheduler* scheduler,
+Worker::Worker(Scheduler* sche,
                const std::string& name,
-               int stack_size)
-    : scheduler_(scheduler),
-      stack_size_(stack_size),
+               int stackSize)
+    : sche_(sche),
+      stackSize_(stackSize),
       name_(name),
       running_(false),
       mutex_(),
@@ -57,15 +57,15 @@ Scheduler* Worker::GetScheduler() {
 
 void Worker::run() {
     t_worker = this;
-    t_scheduler = scheduler_;
+    t_scheduler = sche_;
     Coroutine::InitMainCoroutine();
     SetHookEnable(true);
     LOG_DEBUG << "thread set hook";
     running_ = true;
     
     Coroutine::SPtr idle(new Coroutine(std::bind(&Worker::idle, this),
-                         stack_size_));
-    Coroutine::SPtr co_func;
+                         stackSize_));
+    Coroutine::SPtr coFunc;
 
     while (true) {
         Task task;
@@ -74,7 +74,7 @@ void Worker::run() {
             auto it = tasks_.begin();
             while (it != tasks_.end()) {
                 task = *it;
-                tasks_.erase(it++);
+                tasks_.erase(it++); //TODO:
                 break;
             }
         }
@@ -83,24 +83,26 @@ void Worker::run() {
             task.co->getState() != Coroutine::DONE &&
             task.co->getState() != Coroutine::EXCEPT) {
             task.co->resume();
-            // 调度器执行完协程后，不应保留协程对象，如果协程主动让出
-            // 则应该保存好协程对象，并放入调度器的任务队列中重新调度
+            // co yield to suspend or exit.
+            // if state is exit, reset task so the co can relase.
+            // if state is suspend, reset task only dececemt co's use_count,
+            // co would not relase if other object is holding it like IOEvent.
             task.reset();
         } else if (task.func) {
-            // 对于回调任务，调度器创建一个函数协程对象执行
-            // 如果在回调中主动让出，则函数协程 reset
-            // 如果回调执行完并返回，则下一个回调可以复用当前函数协程的栈
-            if (co_func) {
-                co_func->reuse(task.func);
+            if (coFunc) {
+                coFunc->reuse(task.func);
             } else {
-                co_func.reset(new Coroutine(task.func, stack_size_));
+                coFunc.reset(new Coroutine(task.func, stackSize_));
             }
-            co_func->resume();
-            if (co_func->getState() == Coroutine::SUSPEND) {
-                co_func.reset();
+            coFunc->resume();
+            if (coFunc->getState() == Coroutine::SUSPEND) {
+                // if state is exit, coFunc's stack can re-use at next time.
+                // if state is suspend, coFunc should reset itself and decement its use_count.
+                coFunc.reset();
             }
             task.reset();
         } else {
+            // thread quit.
             if (idle->getState() == Coroutine::DONE) {
                 break;
             }
@@ -114,8 +116,8 @@ void Worker::run() {
 void Worker::idle() {
     const uint64_t MAX_EVENTS = 256;
     epoll_event* events = new epoll_event[MAX_EVENTS]();
-    // 让智能指针接管资源以自动释放
-    std::shared_ptr<epoll_event> sptr_events(events, [](epoll_event* ptr) {
+
+    std::shared_ptr<epoll_event> sptrEvents(events, [](epoll_event* ptr) {
         delete[] ptr;
     });
 
@@ -141,23 +143,20 @@ void Worker::stop() {
 }
 
 void Worker::notify() {
-    if (idle_) {
-        poller_.notify();
-    }
+    poller_.notify();
 }
 
 bool Worker::canStop(int64_t& timeout) {
-    timeout = scheduler_->getExpire();
+    timeout = sche_->getExpire();
     bool has_task = false;
     {
         MutexGuard lock(mutex_);
         has_task = !tasks_.empty();
         
     }
-    LOG_FMT_DEBUG("running:%d has_task:%d timeout:%d", running_, has_task, timeout);
     return  !running_ &&
             !has_task &&
-            (timeout == -1); // 退出时忽略 poller 上监听的事件，如之前 listen 的端口之类的
+            (timeout == -1); // ignore IOEvent listening in epoll.
 }
 
 } // namespace reyao

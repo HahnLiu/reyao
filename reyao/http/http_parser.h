@@ -37,24 +37,23 @@ protected:
 protected:
     SocketStream* stream_;
     ByteArray ba_;
-    size_t read_size_ = 0;
+    size_t readSize_ = 0;
 
-    ParseState parse_state_ = PARSE_FIRST_LINE;
+    ParseState parseState_ = PARSE_FIRST_LINE;
     bool error_ = false;
     bool finish_ = false;
     std::string body_;
 
-    size_t content_len_;
+    size_t contentLen_;
     bool chunked_ = false;
-    size_t chunk_size_ = 0;
-    ParseChunkState chunk_state_ = PARSE_CHUNK_SIZE;
+    size_t chunkSize_ = 0;
+    ParseChunkState chunkState_ = PARSE_CHUNK_SIZE;
 };
 
 class HttpRequestParser : public HttpParser {
 public:
     HttpRequestParser(SocketStream* stream, HttpRequest* req);
     
-    //从字节流中解析http请求
     bool parseRequest();
 
 protected:
@@ -75,7 +74,6 @@ class HttpResponseParser : public HttpParser {
 public:
     HttpResponseParser(SocketStream* stream, HttpResponse* rsp);
 
-    //从字节流中解析http响应
     bool parseResponse();
 
 protected:
@@ -88,4 +86,4 @@ private:
     HttpResponse* rsp_;
 };
 
-} //namespace reyao
+} // namespace reyao

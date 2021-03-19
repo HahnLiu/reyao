@@ -14,8 +14,8 @@ namespace reyao {
 const char ByteArray::kCRLF[] = "\r\n";
 
 ByteArray::ByteArray(size_t init_size)
-    : write_pos_(kCheapPrepend),
-      read_pos_(kCheapPrepend),
+    : writePos_(kCheapPrepend),
+      readPos_(kCheapPrepend),
       buf_(kCheapPrepend + init_size) {}
 
 void ByteArray::writeInt8(int8_t value) {
@@ -74,7 +74,6 @@ void ByteArray::writeFloat(float value) {
     writeInt32(v);
 }
 
-//TODO:
 void ByteArray::writeDouble(double value) {
     uint64_t v;
     memcpy(&v, &value, sizeof(value));
@@ -205,8 +204,8 @@ std::string ByteArray::readString64() {
 }
 
 void ByteArray::reset() {
-    read_pos_ = 0;
-    write_pos_ = 0;
+    readPos_ = 0;
+    writePos_ = 0;
     buf_.resize(kInitSize);
 }
  
@@ -216,8 +215,8 @@ void ByteArray::write(const void* buf, size_t size) {
     }
     addCapacity(size);
 
-    memcpy(&buf_[write_pos_], buf, size);
-    write_pos_ += size;
+    memcpy(&buf_[writePos_], buf, size);
+    writePos_ += size;
 
 }
 
@@ -226,57 +225,20 @@ void ByteArray::read(void* buf, size_t size) {
         throw std::out_of_range("have no enough data to read");
     }
 
-    memcpy(buf, &buf_[read_pos_], size);
-    read_pos_ += size;
+    memcpy(buf, &buf_[readPos_], size);
+    readPos_ += size;
 }
-
-// const char* ByteArray::getWriteArea(size_t len) {
-//     addCapacity(len);
-//     return &buf_[write_pos_];
-// }
 
 char* ByteArray::getWriteArea(size_t len) {
     addCapacity(len);
-    return &buf_[write_pos_];
+    return &buf_[writePos_];
 }
 
 const char* ByteArray::getReadArea(size_t* len) const {
     *len = *len > getReadSize() ? getReadSize() : *len;
 
-    return &buf_[read_pos_];
+    return &buf_[readPos_];
 }
-
-// uint64_t ByteArray::getReadArea(std::vector<iovec>& bufs, 
-//                          uint64_t len, size_t position) const {
-//     len = len > getReadSize() ? getReadSize() : len;
-
-//     uint64_t left = len;
-//     size_t npos = position % node_size_;
-//     size_t ncap = node_size_ - npos;
-//     struct iovec iov;
-//     int count = position / node_size_;
-//     Node* cur = head_;
-//     while (count > 0) {
-//         cur = cur->next;
-//         --count;
-//     }
-//     while (left > 0) {
-//         if (ncap >= left) {
-//             iov.iov_base = cur->ptr + npos;
-//             iov.iov_len = left;
-//             left = 0;
-//         } else {
-//             iov.iov_base = cur->ptr + npos;
-//             iov.iov_len = ncap;
-//             left -= ncap;
-//             npos = 0;
-//             ncap = node_size_;
-//             cur = cur->next;
-//         }
-//         bufs.push_back(iov);
-//     }
-//     return len;
-// }
 
 bool ByteArray::writeToFile(const std::string& name) const {
     std::ofstream ofs;
@@ -286,7 +248,7 @@ bool ByteArray::writeToFile(const std::string& name) const {
                   << " errro=" << strerror(errno);
         return false;
     }
-    ofs.write(&buf_[read_pos_], getReadSize());
+    ofs.write(&buf_[readPos_], getReadSize());
     return true;
 }
 
@@ -330,31 +292,31 @@ std::string ByteArray::toHexString() {
 }
 
 const char* ByteArray::findCRLF() const {
-    const char* crlf = std::search(&buf_[read_pos_], 
-                                   &buf_[write_pos_],
+    const char* crlf = std::search(&buf_[readPos_], 
+                                   &buf_[writePos_],
                                    kCRLF, kCRLF + 2);
-    return crlf == &buf_[write_pos_] ? nullptr : crlf;
+    return crlf == &buf_[writePos_] ? nullptr : crlf;
 }
 
 void ByteArray::addCapacity(int size) {
-    if (write_pos_ + getPrependSize() < size + kCheapPrepend) {
-        buf_.resize(write_pos_ + size);
+    if (getWriteSize() + getReadPos() < size + kCheapPrepend) {
+        buf_.resize(writePos_ + size);
     } else {
-        assert(kCheapPrepend <= read_pos_);
+        assert(kCheapPrepend <= readPos_);
         size_t read_size = getReadSize();
-        std::copy(buf_.begin() + read_pos_,
-                  buf_.begin() + write_pos_,
+        std::copy(buf_.begin() + readPos_,
+                  buf_.begin() + writePos_,
                   buf_.begin() + kCheapPrepend);
-        read_pos_ = kCheapPrepend;
-        write_pos_ = read_pos_ + read_size;
+        readPos_ = kCheapPrepend;
+        writePos_ = readPos_ + read_size;
     }
 }
 
 void ByteArray::writePrepend(const void* data, size_t len) {
-    assert(len <= getPrependSize());
-    read_pos_ -= len;
+    assert(len <= getReadPos());
+    readPos_ -= len;
     const char* buf = static_cast<const char*>(data);
-    std::copy(buf, buf + len, buf_.begin() + read_pos_);
+    std::copy(buf, buf + len, buf_.begin() + readPos_);
 }
 
-} //namespace reyao
+} // namespace reyao

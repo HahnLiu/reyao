@@ -12,9 +12,9 @@ namespace reyao {
 Epoller::IOEvent::EventCtx& Epoller::IOEvent::getEventCtx(int type) {
     switch (type) {
         case EPOLLIN:
-            return read_event;
+            return readEvent;
         case EPOLLOUT:
-            return write_event;
+            return writeEvent;
         default:
             LOG_FATAL << "getEventCtx";
             assert(false);
@@ -33,7 +33,6 @@ void Epoller::IOEvent::triggleEvent(int type) {
     types = (types & ~type);
     EventCtx& ctx = getEventCtx(type);
 
-    // 加入调度器后 IOEvent 不再保存任务对象
     if (ctx.co) {
         ctx.worker->addTask(&ctx.co);
     } else {
@@ -43,7 +42,8 @@ void Epoller::IOEvent::triggleEvent(int type) {
 }
 
 Epoller::Epoller(Worker* worker)
-    : worker_(worker) {
+    : worker_(worker),
+      polling_(false) {
     epfd_ = epoll_create(5);
     assert(epfd_ >= 0);
     eventfd_ = eventfd(0, EFD_NONBLOCK);
@@ -64,10 +64,10 @@ Epoller::~Epoller() {
 
 bool Epoller::addEvent(int fd, int type, Func func) {
     IOEvent* event = nullptr;
-    if ((int)io_events_.size() <= fd) {
+    if ((int)ioEvents_.size() <= fd) {
         resize(fd * 1.5);
     }
-    event = io_events_[fd];
+    event = ioEvents_[fd];
     // 事件已注册
     if (event->types & type) {
         LOG_ERROR << "addEvent(" << fd
@@ -78,7 +78,7 @@ bool Epoller::addEvent(int fd, int type, Func func) {
     int op = event->types ? EPOLL_CTL_MOD : EPOLL_CTL_ADD;
     epoll_event epevent;
     epevent.events = EPOLLET | event->types | type;
-    epevent.data.ptr = event;   // 将 IOEvent 放入 epoll_event 中
+    epevent.data.ptr = event;
     if (epoll_ctl(epfd_, op, fd, &epevent) == -1) {
         LOG_ERROR << "epoll_ctl(" << epfd_
                   << ", " << op << ", " << fd << ", "
@@ -87,7 +87,7 @@ bool Epoller::addEvent(int fd, int type, Func func) {
         return false;
     }
 
-    ++pending_events_;
+    ++pendingEvents_;
     
     event->types = (event->types | type);
     IOEvent::EventCtx& ctx = event->getEventCtx(type);
@@ -103,19 +103,19 @@ bool Epoller::addEvent(int fd, int type, Func func) {
 
 bool Epoller::delEvent(int fd, int type) {
     IOEvent* event = nullptr;
-    if ((int)io_events_.size() <= fd) {
+    if ((int)ioEvents_.size() <= fd) {
         return false;    
     }
-    event = io_events_[fd];
+    event = ioEvents_[fd];
   
     if (!(event->types & type)) {
         return false;
     }
 
-    int new_types = (event->types & ~type);
-    int op = new_types ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
+    int newTypes = (event->types & ~type);
+    int op = newTypes ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
     epoll_event epevent;
-    epevent.events = EPOLLET | new_types;
+    epevent.events = EPOLLET | newTypes;
     epevent.data.ptr = event;
         if (epoll_ctl(epfd_, op, fd, &epevent) == -1) {
         LOG_ERROR << "epoll_ctl(" << epfd_
@@ -125,29 +125,27 @@ bool Epoller::delEvent(int fd, int type) {
         return false;
     }
 
-    --pending_events_;
+    --pendingEvents_;
 
-    event->types = new_types;
+    event->types = newTypes;
     event->resetEventCtx(type);
     return true;
 }
 
 bool Epoller::handleEvent(int fd, int type) {
     IOEvent* event = nullptr;
-    if ((int)io_events_.size() <= fd) {
+    if ((int)ioEvents_.size() <= fd) {
         return false;    
     }
-    event = io_events_[fd];
-    // 没有注册 type 事件
+    event = ioEvents_[fd];
     if (!(event->types & type)) {
         return false;
     }
 
-    // 继续注册未触发事件
-    int new_type = (event->types & ~type);
-    int op = new_type ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
+    int newTypes = (event->types & ~type);
+    int op = newTypes ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
     epoll_event epevent;
-    epevent.events = EPOLLET | new_type;
+    epevent.events = EPOLLET | newTypes;
     epevent.data.ptr = event;
         if (epoll_ctl(epfd_, op, fd, &epevent) == -1) {
         LOG_ERROR << "epoll_ctl(" << epfd_
@@ -158,16 +156,16 @@ bool Epoller::handleEvent(int fd, int type) {
     }
 
     event->triggleEvent(type);
-    --pending_events_;
+    --pendingEvents_;
     return true;
 }
 
 bool Epoller::handleAllEvent(int fd) {
     IOEvent* event = nullptr;
-    if ((int)io_events_.size() <= fd) {
+    if ((int)ioEvents_.size() <= fd) {
         return false;    
     }
-    event = io_events_[fd];
+    event = ioEvents_[fd];
 
     if (event->types == 0) {
         return false;
@@ -186,11 +184,11 @@ bool Epoller::handleAllEvent(int fd) {
 
     if (event->types & EPOLLIN) {
         event->triggleEvent(EPOLLIN);
-        --pending_events_;
+        --pendingEvents_;
     }
     if (event->types & EPOLLOUT) {
         event->triggleEvent(EPOLLOUT);
-        --pending_events_;
+        --pendingEvents_;
     }
     return true;
 }
@@ -206,6 +204,7 @@ void Epoller::wait(epoll_event* events, int maxcnt, int timeout) {
                 timeout = kMaxTimeout;
             }
             LOG_DEBUG << "epoll_wait " << timeout << " ms";
+            polling_ = true;
             rt = epoll_wait(epfd_, events, maxcnt, timeout);
             if (rt < 0 && errno == EINTR) {
                 continue;
@@ -214,6 +213,7 @@ void Epoller::wait(epoll_event* events, int maxcnt, int timeout) {
             }
         }
         
+        polling_ = false;
         std::vector<Func> funcs;
         worker_->getScheduler()->expiredFunctions(funcs);
         if (!funcs.empty()) {
@@ -232,52 +232,55 @@ void Epoller::wait(epoll_event* events, int maxcnt, int timeout) {
                 continue;
             }
 
-            Epoller::IOEvent* io_event = (Epoller::IOEvent*)event.data.ptr;
+            Epoller::IOEvent* ioEvent = (Epoller::IOEvent*)event.data.ptr;
             if (event.events & (EPOLLERR | EPOLLHUP)) { 
                 // peer关闭，标记 socket 注册的读写 event，当作读写事件统一处理，即关闭连接
-                event.events |= (EPOLLIN | EPOLLOUT) & io_event->types;
+                event.events |= (EPOLLIN | EPOLLOUT) & ioEvent->types;
             }
-            int real_events = 0;
+            int realEvents = 0;
             if (event.events & EPOLLIN) {
-                real_events |= EPOLLIN;
+                realEvents |= EPOLLIN;
             }
             if (event.events & EPOLLOUT) {
-                real_events |= EPOLLOUT;
+                realEvents |= EPOLLOUT;
             }
 
-            if ((io_event->types & real_events) == 0) {
-                // io_event 的读写事件被取消，跳过处理该事件 
+            // cancelled
+            if ((ioEvent->types & realEvents) == 0) {
                 continue;
             }
 
-            int left_events = io_event->types & ~real_events;
+            int left_events = ioEvent->types & ~realEvents;
             int op = left_events ? EPOLL_CTL_MOD : EPOLL_CTL_DEL;
             event.events = EPOLLET & left_events;
 
-            if (epoll_ctl(epfd_, op, io_event->fd, &event)) {
+            if (epoll_ctl(epfd_, op, ioEvent->fd, &event)) {
                 LOG_ERROR << "epoll_ctl(" << epfd_
-                << ", " << op << ", " << io_event->fd
+                << ", " << op << ", " << ioEvent->fd
                 << ", " << event.events << ")"
                 << " errno:" << strerror(errno);
             }
 
-            if (real_events & EPOLLIN) {
-                io_event->triggleEvent(EPOLLIN);
-                --pending_events_;
+            if (realEvents & EPOLLIN) {
+                ioEvent->triggleEvent(EPOLLIN);
+                --pendingEvents_;
             }
-            if (real_events & EPOLLOUT) {
-                io_event->triggleEvent(EPOLLOUT);
-                --pending_events_;
+            if (realEvents & EPOLLOUT) {
+                ioEvent->triggleEvent(EPOLLOUT);
+                --pendingEvents_;
             }
 
         }
 }
 
 void Epoller::notify() {
+    if (!polling_) {
+        return;
+    }
     uint64_t one = 1;
     if (write(eventfd_, &one, sizeof(one)) != sizeof(one)) {
         LOG_ERROR << "epoller eventfd write < 8 bytes";
     }
 }
 
-} //namespace reyao
+} // namespace reyao

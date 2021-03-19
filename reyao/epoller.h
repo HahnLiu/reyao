@@ -32,41 +32,36 @@ public:
         IOEvent(int f):fd(f) {}
         EventCtx& getEventCtx(int type);
         void resetEventCtx(int type);
-        //将 IO 事件的任务加入调度器
+        // add ioEvent task to sche.
         void triggleEvent(int type);
 
-        EventCtx read_event;    // 读事件
-        EventCtx write_event;   // 写事件
-        int types = 0;          // 等待事件类型
-        int fd;                 // 文件描述符
+        EventCtx readEvent;  
+        EventCtx writeEvent;  
+        int types = 0;     
+        int fd;      
     };
 
 public:
     Epoller(Worker* worker);
     ~Epoller();
 
-    // 添加事件
     bool addEvent(int fd, int type, Func func = nullptr);
-    // 从 io 队列中删除事件
     bool delEvent(int fd, int type); 
-    // 触发指定的事件并从队列中移除
     bool handleEvent(int fd, int type);
-    // 触发读写事件并从队列中移除
     bool handleAllEvent(int fd);
-    // epoll_wait
     void wait(epoll_event* events, int maxcnt, int timeout);
-    bool hasEvent() const { return pending_events_ != 0; }
+    bool hasEvent() const { return pendingEvents_ != 0; }
     void notify();
 
-    int getEventCount() const { return pending_events_; }
+    int getEventCount() const { return pendingEvents_; }
 
 private:
     void resize(size_t size) {
-        io_events_.resize(size);
+        ioEvents_.resize(size);
 
         for (size_t i = 0; i < size; i++) {
-            if (!io_events_[i]) {
-                io_events_[i] = new IOEvent(i);
+            if (!ioEvents_[i]) {
+                ioEvents_[i] = new IOEvent(i);
             }
         }
     }
@@ -75,11 +70,12 @@ private:
     Worker* worker_;
     int epfd_;
     int eventfd_;
-    std::atomic<size_t> pending_events_{0};
+    std::atomic<size_t> pendingEvents_{0};
     // 为了加快速度，直接用 vector 存放 IO 事件
     // 且当一个 sockfd 触发事件并关闭后，也不释放内存
     // 下一个相同的 sockfd 可以直接复用，是空间换事件的考虑
-    std::vector<IOEvent*> io_events_;
+    std::vector<IOEvent*> ioEvents_;
+    bool polling_;
 };
 
 } // namespace reyao

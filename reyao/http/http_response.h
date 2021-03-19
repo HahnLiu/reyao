@@ -44,7 +44,7 @@ public:
     typedef std::shared_ptr<HttpResponse> SPtr;
     typedef std::map<std::string, std::string,
                      CaseInsensitiveLess> HeaderMap;
-    HttpResponse(uint8_t version = 0x11, bool keep_alive = false);
+    HttpResponse(uint8_t version = 0x11, bool keepAlive = false);
 
     HttpStatus getStatus() const { return status_; }
     int8_t getVersion() const { return version_; }
@@ -58,8 +58,8 @@ public:
     void setReason(const std::string& reason) { reason_ = reason; }
     void setHeaders(const HeaderMap& headers) { headers_ = headers; }
 
-    bool isKeepAlive() { return keep_alive_; }
-    void setKeepAlive(bool v) { keep_alive_ = v; }
+    bool isKeepAlive() { return keepAlive_; }
+    void setKeepAlive(bool v) { keepAlive_ = v; }
 
     std::string getHeader(const std::string& key);
     void addHeader(const std::string& key, const std::string& val);
@@ -71,7 +71,7 @@ public:
 private:
     HttpStatus status_;
     uint8_t version_;
-    bool keep_alive_;
+    bool keepAlive_;
 
     std::string body_;
     std::string reason_;
@@ -80,4 +80,4 @@ private:
 };
 
 
-} //namespace reyao
+} // namespace reyao

@@ -3,7 +3,6 @@
 
 namespace reyao {
 
-//TODO: 优化以下两个方法
 HttpMethod StringToHttpMethod(const std::string& str) {
     const char* s = str.c_str();
 #define XX(num, name, string) \
@@ -30,10 +29,10 @@ const char* HttpMethodToString(const HttpMethod& m) {
 }
 
 
-HttpRequest::HttpRequest(uint8_t version, bool keep_alive) 
+HttpRequest::HttpRequest(uint8_t version, bool keepAlive) 
     : method_(HttpMethod::GET),
       version_(version),
-      keep_alive_(keep_alive),
+      keepAlive_(keepAlive),
       path_("/") {
 
 }
@@ -78,14 +77,13 @@ void HttpRequest::delCookie(const std::string& key) {
 }
 
 std::ostream& HttpRequest::dump(std::ostream& os) const {
-    //请求行
     os << HttpMethodToString(method_) << " "
        << path_ << (query_.empty() ? "" : "?")
        << query_ << (fragment_.empty() ? "" : "#")
        << fragment_ << " HTTP/" << (uint32_t)(version_ >> 4)
-       << "." << (uint32_t)(version_ & 0x0F) << "\r\n"; //TODO:
-    //首部行+主体
-    os << "connection: " << (keep_alive_ ? "keep-alive" : "close") << "\r\n";
+       << "." << (uint32_t)(version_ & 0x0F) << "\r\n"; 
+
+    os << "connection: " << (keepAlive_ ? "keep-alive" : "close") << "\r\n";
     for (auto& it : headers_) {
         if (strcasecmp(it.first.c_str(), "connection") == 0) {
             continue;
@@ -109,4 +107,4 @@ std::string HttpRequest::toString() {
 }
 
 
-} //namespace reyao
+} // namespace reyao

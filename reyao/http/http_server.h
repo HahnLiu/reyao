@@ -9,9 +9,9 @@ namespace reyao {
 class HttpServer : public TcpServer {
 public:
     typedef std::shared_ptr<HttpServer> SPtr;
-    HttpServer(Scheduler* scheduler,
+    HttpServer(Scheduler* sche,
                IPv4Address::SPtr addr,
-               bool keep_alive = false);
+               bool keepAlive = false);
 
     void handleClient(Socket::SPtr client) override;
 
@@ -19,8 +19,8 @@ public:
     void setServletDispatch(ServletDispatch::SPtr dispatch) { dispatch_ = dispatch; }
 
 private:
-    bool keep_alive_;
+    bool keepAlive_;
     ServletDispatch::SPtr dispatch_;
 };
 
-} //namespace reyao
+} // namespace reyao

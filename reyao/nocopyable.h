@@ -10,4 +10,4 @@ public:
     NoCopyable& operator=(const NoCopyable&) = delete;
 };
 
-} //namespace reyao
+} // namespace reyao

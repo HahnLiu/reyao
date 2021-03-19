@@ -6,21 +6,20 @@
 
 namespace reyao {
 
-thread_local char t_time[64]; //缓存格式化输出时间，避免频繁调用strftime，做缓存后，wsl2中写300m数据的速度从36s提升到了25s
-thread_local time_t t_last_second; //上一次日格式化时间的秒数
+thread_local char t_time[64]; 
+thread_local time_t t_last_second;
 
-static const char* default_log_format = "[%p %d]%T[%t %c]%T%f:%l %T%m%n";
+static const char* s_defaultLogFormat = "[%p %d]%T[%t %N %c]%T%f:%l %T%m%n";
 
-LogData::LogData(LogLevel::Level level, time_t time, uint32_t elapse,
-                 uint32_t thread_id, uint32_t coroutine_id, 
-                 std::string thread_name, const char *file_name, uint32_t line)
+LogData::LogData(LogLevel::Level level, time_t time,
+                 uint32_t threadId, uint32_t coroutineId, 
+                 std::string threadName, const char *fileName, uint32_t line)
     : level_(level),
       time_(time),
-      elapse_(elapse),
-      thread_id_(thread_id),
-      coroutine_id_(coroutine_id),
-      thread_name_(thread_name),
-      file_name_(file_name),
+      threadId_(threadId),
+      coroutineId_(coroutineId),
+      threadName_(threadName),
+      fileName_(fileName),
       line_(line) {
                      
 }
@@ -41,11 +40,11 @@ void LogData::format(const char* fmt, va_list al) {
     }
 }
         
-LogDataWrap::LogDataWrap(LogLevel::Level level, time_t time, uint32_t elapse,
-            uint32_t thread_id, uint32_t coroutine_id, std::string thread_name, 
-            const char* file_name, uint32_t line)
-    : data_(level, time, elapse, thread_id, 
-            coroutine_id, thread_name, file_name, line) {
+LogDataWrap::LogDataWrap(LogLevel::Level level, time_t time,
+            uint32_t threadId, uint32_t coroutineId, std::string threadName, 
+            const char* fileName, uint32_t line)
+    : data_(level, time, threadId, coroutineId, 
+            threadName, fileName, line) {
 
 }
 
@@ -76,21 +75,11 @@ class DateTimeFmtItem : public LogFormatter::FmtItem {
         struct tm tm;
         time_t second = data.getTime();
         if (second != t_last_second)  {
-            //缓存的格式化时间需要更新
             t_last_second = second;
             localtime_r(&second, &tm);
             strftime(t_time, sizeof(t_time), "%Y-%m-%d %H:%M:%S", &tm);
         }
         ss << t_time;
-        // ss << GetCurrentTime();
-    }
-};
-
-class ElapseFmtItem : public LogFormatter::FmtItem {
- public:
-    explicit ElapseFmtItem(const std::string& str = "") {}
-    void format(std::stringstream& ss, const LogData& data) override {
-        ss << data.getElapse();
     }
 };
 
@@ -176,44 +165,37 @@ LogFormatter::LogFormatter(const std::string& pattern): pattern_(pattern) {
     init();
 }
 
-//%xxx %%
 void LogFormatter::init() {   
     //str type  // %str
     std::vector<std::pair<std::string, int>> vec;
     std::string s;
     for (size_t i = 0; i < pattern_.size(); i++) {
         if (pattern_[i] != '%') {
-            //如果是普通字符就放进s
             s.append(1, pattern_[i]);
             continue;
         }
-        
-        //pattern_[i]为 %' 
+    
 
-        //此时 i 为 % 且 i + 1 为 % ，说明出现 %% 转义， 此时 % 是一个普通的 % ，跳过不解析
         if (i + 1 < pattern_.size() && pattern_[i + 1] == '%') {
             s.append(1, '%');
             continue;
         }
 
-        //从 i + 1 开始解析
         size_t n = i + 1;
         std::string str;
         while (n < pattern_.size()) {
             if (!isalpha(pattern_[n])) {
-                //不是字母
-                str = pattern_.substr(i + 1, n - i - 1); //如 %xx% ，str = xx
+                str = pattern_.substr(i + 1, n - i - 1);
                 break;
             }       
             ++n;
             if (n == pattern_.size()) {
                 if (str.empty()) {
-                    str = pattern_.substr(i + 1); //遍历完 % 后面都是字母，则全部记下来
+                    str = pattern_.substr(i + 1);
                 }
             }
         }
 
-        //i 为 % 且解析完毕
         if (!s.empty()) {
             vec.push_back({s, 0});
             s.clear();
@@ -223,19 +205,16 @@ void LogFormatter::init() {
     }
 
     if (!s.empty()) {
-        //如果 pattern 中没有 % ，说明是个普通的 str ，这时 s == pattern_ ， 放进 vec 中
         vec.push_back({s, 0});
     }
 
-    //开始对每一种情况解析
-    static std::map<std::string, std::function<FmtItem::SPtr()>> format_to_item = {
+    static std::map<std::string, std::function<FmtItem::SPtr()>> format2Item = {
 #define XX(c, Item) \
         {#c, [] () { return FmtItem::SPtr(std::make_shared<Item>());} }
 
         XX(m, MessageFmtItem),
         XX(p, LevelFmtItem),
         XX(d, DateTimeFmtItem),
-        XX(r, ElapseFmtItem),
         XX(t, ThreadIdFmtItem),
         XX(c, CoroutineIdFmtItem),
         XX(N, ThreadNameFmtItem),
@@ -249,13 +228,13 @@ void LogFormatter::init() {
 
     for (auto& i : vec) {
         if (i.second == 0) {
-            items_.push_back(FmtItem::SPtr(std::make_shared<StringFmtItem>(i.first))); //普通字符串
+            items_.push_back(FmtItem::SPtr(std::make_shared<StringFmtItem>(i.first))); 
         } else {
-            auto iter = format_to_item.find(i.first); //得到 str 对应的 Item ，如 d 对应 DateTimeFmtItem
-            if (iter == format_to_item.end()) {
+            auto iter = format2Item.find(i.first);
+            if (iter == format2Item.end()) {
                 items_.push_back(FmtItem::SPtr(std::make_shared<StringFmtItem>("<<error format %" + i.first + ">>"))); //格式字符不在map里
             } else {
-                items_.push_back(iter->second()); //生成对应的 Item 实例
+                items_.push_back(iter->second()); 
             }
         }
     }
@@ -264,14 +243,14 @@ void LogFormatter::init() {
 std::string LogFormatter::format(const LogData& data) {
     std::stringstream ss;
     for (auto item : items_) {
-        item->format(ss, data); //将每个item写进流里
+        item->format(ss, data);
     }
     return ss.str();
 }
 
 Logger::Logger()
-    : level_(LogLevel::DEBUG), //默认为DEBUG级别
-      formatter_(std::make_shared<LogFormatter>(default_log_format)), //默认日志格式
+    : level_(LogLevel::DEBUG),
+      formatter_(std::make_shared<LogFormatter>(s_defaultLogFormat)), 
       appender_(std::make_shared<ConsoleAppender>()) {
 
 }
@@ -324,4 +303,4 @@ void FileAppender::append(const std::string& logline) {
     log_.append(logline.c_str(), logline.size());
 }
 
-} //namespace reyao
+} // namespace reyao

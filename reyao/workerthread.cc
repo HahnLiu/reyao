@@ -2,10 +2,11 @@
 
 namespace reyao {
 
-WorkerThread::WorkerThread(Scheduler* scheduler,
+WorkerThread::WorkerThread(Scheduler* sche,
               const std::string& name)
-    : worker_(scheduler, name),
+    : worker_(sche, name),
       thread_(std::bind(&Worker::run, &worker_), name) {
+        
     thread_.start();
 }
 
@@ -14,4 +15,4 @@ WorkerThread::~WorkerThread() {
     thread_.join();
 }
 
-} //namespace reyao
+} // namespace reyao

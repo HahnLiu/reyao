@@ -22,18 +22,18 @@ namespace reyao {
 class Scheduler : public NoCopyable,
                   public TimeManager {
 public:
-    Scheduler(int thread_num = 1,
-              const std::string& name = "scheduler");
+    Scheduler(int threadNum = 1,
+              const std::string& name = "Scheduler");
     ~Scheduler();
 
     template<typename CoroutineOrFunc>
     void addTask(CoroutineOrFunc cf, int t = -1) {
         if (t != -1) {
-            if (worker_map_.find(t) == worker_map_.end()) {
+            if (workerMap_.find(t) == workerMap_.end()) {
                 LOG_ERROR << "addTask to invalid thread " << t;
                 return;
             }
-            auto worker = worker_map_[t];
+            auto worker = workerMap_[t];
             worker->addTask(cf);
         } else {
             auto worker = getNextWorker();
@@ -47,27 +47,27 @@ public:
     void stop();
     void joinThread();
     Worker* getNextWorker();
-    Worker* getMainWorker() { return &main_worker_; }
+    Worker* getMainWorker() { return &mainWorker_; }
 
     virtual void timerInsertAtFront() override;
 
 private:
     void init();
 
-    Worker main_worker_;
+    Worker mainWorker_;
     const std::string name_;
-    std::map<int, Worker*> worker_map_;
+    std::map<int, Worker*> workerMap_;
     std::vector<Worker*> workers_;
     std::vector<WorkerThread::UPtr> threads_;
-    int thread_num_;
+    int threadNum_;
     int index_;
 
-    Thread init_thread_;
-    Thread join_thread_;
-    CountDownLatch init_latch_;
-    CountDownLatch quit_latch_;
+    Thread initThread_;
+    Thread joinThread_;
+    CountDownLatch initLatch_;
+    CountDownLatch quitLatch_;
     
     bool running_{false};
 };
 
-} //namespace reyao
+} // namespace reyao

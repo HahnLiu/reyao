@@ -1,0 +1,44 @@
+"D:\software\CLion 2020.3.2\bin\cmake\win\bin\cmake.exe" -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=D:/MinGW/bin/mingw32-make.exe -DCMAKE_C_COMPILER=D:/MinGW/bin/gcc.exe -DCMAKE_CXX_COMPILER=D:/MinGW/bin/g++.exe -G "CodeBlocks - MinGW Makefiles" \\wsl$\Ubuntu-20.04\home\wsl\reyao
+-- The C compiler identification is GNU 9.2.0
+-- The CXX compiler identification is GNU 9.2.0
+-- Check for working C compiler: D:/MinGW/bin/gcc.exe
+-- Check for working C compiler: D:/MinGW/bin/gcc.exe - broken
+CMake Error at D:/software/CLion 2020.3.2/bin/cmake/win/share/cmake-3.17/Modules/CMakeTestCCompiler.cmake:60 (message):
+  The C compiler
+
+    "D:/MinGW/bin/gcc.exe"
+
+  is not able to compile a simple test program.
+
+  It fails with the following output:
+
+    Change Dir: //wsl$/Ubuntu-20.04/home/wsl/reyao/cmake-build-debug/CMakeFiles/CMakeTmp
+    
+    Run Build Command(s):D:/MinGW/bin/mingw32-make.exe cmTC_5d16d/fast && D:/MinGW/bin/mingw32-make.exe  -f CMakeFiles\cmTC_5d16d.dir\build.make CMakeFiles/cmTC_5d16d.dir/build
+    mingw32-make.exe[1]: Entering directory '//wsl$/Ubuntu-20.04/home/wsl/reyao/cmake-build-debug/CMakeFiles/CMakeTmp'
+    '\\wsl$\Ubuntu-20.04\home\wsl\reyao\cmake-build-debug\CMakeFiles\CMakeTmp'
+    CMD.EXE was started with the above path as the current directory.
+    UNC paths are not supported.  Defaulting to Windows directory.
+    Building C object CMakeFiles/cmTC_5d16d.dir/testCCompiler.c.obj
+    D:\MinGW\bin\gcc.exe    -o CMakeFiles\cmTC_5d16d.dir\testCCompiler.c.obj   -c \\wsl$\Ubuntu-20.04\home\wsl\reyao\cmake-build-debug\CMakeFiles\CMakeTmp\testCCompiler.c
+    gcc.exe: error: \wsl$\Ubuntu-20.04\home\wsl\reyao\cmake-build-debug\CMakeFiles\CMakeTmp\testCCompiler.c: No such file or directory
+    gcc.exe: fatal error: no input files
+    compilation terminated.
+    CMakeFiles\cmTC_5d16d.dir\build.make:84: recipe for target 'CMakeFiles/cmTC_5d16d.dir/testCCompiler.c.obj' failed
+    mingw32-make.exe[1]: *** [CMakeFiles/cmTC_5d16d.dir/testCCompiler.c.obj] Error 1
+    mingw32-make.exe[1]: Leaving directory '//wsl$/Ubuntu-20.04/home/wsl/reyao/cmake-build-debug/CMakeFiles/CMakeTmp'
+    Makefile:140: recipe for target 'cmTC_5d16d/fast' failed
+    mingw32-make.exe: *** [cmTC_5d16d/fast] Error 2
+    
+    
+
+  
+
+  CMake will not be able to correctly generate this project.
+Call Stack (most recent call first):
+  CMakeLists.txt:2 (project)
+
+
+-- Configuring incomplete, errors occurred!
+See also "//wsl$/Ubuntu-20.04/home/wsl/reyao/cmake-build-debug/CMakeFiles/CMakeOutput.log".
+See also "//wsl$/Ubuntu-20.04/home/wsl/reyao/cmake-build-debug/CMakeFiles/CMakeError.log".
