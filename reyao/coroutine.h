@@ -61,10 +61,11 @@ private:
 
 class CoroutineCondition {
 public:
+    CoroutineCondition() {}
     void wait();
     void notify();
 private:
-    Worker* worker_;
+    Worker* worker_ = nullptr;
     Coroutine::SPtr co_;
 };
 
