@@ -14,7 +14,7 @@ public:
     TcpClient(Scheduler* sche, IPv4Address::SPtr addr);
     ~TcpClient() { LOG_DEBUG << "~TcpCLient"; }
 
-    bool start();
+    void start();
     void stop();
     Socket::SPtr getConn() { return conn_; }
 

@@ -1,6 +1,8 @@
 #include "reyao/mutex.h"
 
-#include "errno.h"
+#include <errno.h>
+#include <stdint.h>
+#include <sys/time.h>
 
 namespace reyao {
 
@@ -41,10 +43,17 @@ void Condition::wait() {
 }
 
 bool Condition::waitForSeconds(int seconds) {
-    struct timespec interval;
-    clock_gettime(CLOCK_REALTIME, &interval);
-    interval.tv_sec += static_cast<time_t> (seconds);
-    return ETIMEDOUT == pthread_cond_timedwait(&cond_, mutex_.getMutex(), &interval);
+    struct timespec abstime;
+
+    clock_gettime(CLOCK_REALTIME, &abstime);
+
+    const int64_t kNanoSecondsPerSecond = 1000000000;
+    int64_t nanoseconds = static_cast<int64_t>(seconds * kNanoSecondsPerSecond);
+
+    abstime.tv_sec += static_cast<time_t>((abstime.tv_nsec + nanoseconds) / kNanoSecondsPerSecond);
+    abstime.tv_nsec = static_cast<long>((abstime.tv_nsec + nanoseconds) % kNanoSecondsPerSecond);
+    MutexGuard lock(mutex_);
+    return ETIMEDOUT == pthread_cond_timedwait(&cond_, mutex_.getMutex(), &abstime);
 }
 
 //最少唤醒一个线程

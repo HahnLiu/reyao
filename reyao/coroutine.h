@@ -9,6 +9,7 @@
 
 #include <memory>
 #include <functional>
+#include <atomic>
 
 namespace reyao {
 
@@ -67,6 +68,33 @@ public:
 private:
     Worker* worker_ = nullptr;
     Coroutine::SPtr co_;
+};
+
+class CoroutineSpinLock : public NoCopyable {
+public:
+    void lock() {
+        if (--sem < 0) {
+            while (sem < 0);
+        }
+    }
+    void unlock() {
+        ++sem;
+    }
+private:
+    std::atomic<int> sem{1};
+};
+
+template <class T>
+class LockGuard : public NoCopyable {
+public:
+    LockGuard(T& l): lock_(l) {
+        lock_.lock();
+    }
+    ~LockGuard() {
+        lock_.unlock();
+    }
+private:
+    T& lock_;
 };
 
 } // namespace reyao

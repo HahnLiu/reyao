@@ -24,8 +24,6 @@ int main() {
         }
         conn->close();
     });
-    if (client.start() == false) {
-        LOG_INFO << "connect " << addr->toString() << " error";
-    }
+    client.start();
     sche.wait();
 }

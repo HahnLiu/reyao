@@ -10,22 +10,15 @@ TcpClient::TcpClient(Scheduler* sche, IPv4Address::SPtr addr)
 
 }
 
-bool TcpClient::start() {
-    //sche_->addTask([this]() {
-    //    conn_ = Socket::CreateTcp();
-    //    if (conn_->connect(addr_, kConnectMaxTimeOut)) {
-    //        handleConnect(conn_);
-    //    } else {
-    //        LOG_ERROR  << "connect err " << addr_.toString();
-    //    }
-    //});
-    conn_ = Socket::CreateTcp();
-    if (conn_->connect(*addr_, s_ConnectMaxTimeOut)) {
-        handleConnect(conn_);
-        return true;
-    } else {
-        return false;
-    }
+void TcpClient::start() {
+    sche_->getMainWorker()->addTask([this]() {
+       conn_ = Socket::CreateTcp();
+       if (conn_->connect(*addr_, s_ConnectMaxTimeOut)) {
+           handleConnect(conn_);
+       } else {
+           LOG_ERROR  << "connect err " << addr_->toString();
+       }
+    });
 }
 
 void TcpClient::stop() {

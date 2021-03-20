@@ -59,7 +59,7 @@ void TcpServer::accept() {
             client->setRecvTimeout(recvTimeout_);
             sche_->addTask(std::bind(&TcpServer::handleClient, 
                                      this, client));
-            LOG_DEBUG << "accept:" << client->toString();
+            // LOG_DEBUG << "accept:" << client->toString();
         } else {
             LOG_ERROR << "accept error=" << strerror(errno);
         }

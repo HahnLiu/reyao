@@ -27,25 +27,27 @@ public:
     RpcClient(Scheduler* sche, IPv4Address::SPtr addr): client_(sche, addr) {}
 
     template<typename RspMessage>
-    bool Call(MessageSPtr req, typename TypeTraits<RspMessage>::ResponseHandler handler) {
-        client_.setConnectCallBack([=](Socket::SPtr conn) {
-            LOG_DEBUG << "RpcClient connect to " << client_.getConn()->getPeerAddr()->toString();
+    void Call(MessageSPtr req, typename TypeTraits<RspMessage>::ResponseHandler handler) {
+        client_.setConnectCallBack([this, req, handler](Socket::SPtr conn) {
+            // LOG_DEBUG << "RpcClient connect to " << client_.getConn()->getPeerAddr()->toString();
             ProtobufCodec codec(conn);
             codec.send(req);
 
             ByteArray ba;
-            MessageSPtr rsp;
+            MessageSPtr rsp = nullptr;
             auto errMsg = codec.receive(rsp);
             if (errMsg->errcode == ProtobufCodec::kNoError && rsp) {
                 std::shared_ptr<RspMessage> concreateRsp
                     = std::static_pointer_cast<RspMessage>(rsp);
+                assert(handler);
+                assert(concreateRsp); 
                 handler(concreateRsp);
             } else {
                 LOG_ERROR << "receive response error: " << errMsg->errstr;
             }
             conn->close();
         });
-        return client_.start();
+        client_.start();
     }
 
 private:

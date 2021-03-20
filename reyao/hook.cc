@@ -140,7 +140,6 @@ retry:
             }
             return -1;
         } else {
-            LOG_DEBUG << "regsiter " << fd;
             Coroutine::YieldToSuspend();
 
             if (timer) {
