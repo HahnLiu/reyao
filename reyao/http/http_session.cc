@@ -10,7 +10,7 @@ HttpSession::HttpSession(std::shared_ptr<Socket> sock, bool owner)
 
 }
 
-bool HttpSession::recvRequest(HttpRequest* req) { //FIXME:
+bool HttpSession::recvRequest(HttpRequest* req) { 
     HttpRequestParser parser(this, req);
     return parser.parseRequest();
 }
@@ -23,4 +23,4 @@ bool HttpSession::sendResponse(HttpResponse* rsp) {
 }
 
 
-} //namespace reyao
+} // namespace reyao

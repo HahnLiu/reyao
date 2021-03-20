@@ -5,7 +5,7 @@
 
 namespace reyao {
 
-int64_t GetCurrentTime() {
+int64_t GetCurrentMs() {
     struct timeval tv;
     gettimeofday(&tv, nullptr);
     return tv.tv_sec * 1000 + tv.tv_usec / 1000;
@@ -27,4 +27,4 @@ int HexToDec(std::string hex) {
     return res;
 }
 
-} //namespace reyao
+} // namespace reyao

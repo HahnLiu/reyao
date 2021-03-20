@@ -40,11 +40,11 @@ public:
     typedef std::shared_ptr<HttpRequest> SPtr;
     typedef std::map<std::string, std::string,
                      CaseInsensitiveLess> StrMap;
-    HttpRequest(uint8_t version = 0x11, bool keep_alive = false); //TODO:
+    HttpRequest(uint8_t version = 0x11, bool keepAlive = false);
 
     HttpMethod getMethod() const { return method_; }
     int8_t getVersion() const { return version_; }
-    bool isKeepAlive() const { return keep_alive_; }
+    bool isKeepAlive() const { return keepAlive_; }
     const std::string& getPath() const { return path_; }
     const std::string& getQuery() const { return query_; }
     const std::string& getFragment() const { return fragment_; }
@@ -55,7 +55,7 @@ public:
 
     void setMethod(HttpMethod method) { method_ = method; }
     void setVersion(uint8_t version) { version_ = version; }
-    void setKeepAlive(bool v) { keep_alive_ = v; }
+    void setKeepAlive(bool v) { keepAlive_ = v; }
     void setPath(const std::string& path) { path_ = path; }
     void setQuery(const std::string& query) { query_ = query; }
     void setFragment(const std::string& fragment) { fragment_ = fragment; }
@@ -82,7 +82,7 @@ public:
 private:
     HttpMethod method_;
     uint8_t version_;
-    bool keep_alive_;
+    bool keepAlive_;
 
     std::string path_;
     std::string query_;

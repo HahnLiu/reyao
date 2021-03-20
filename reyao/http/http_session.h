@@ -9,7 +9,6 @@
 
 namespace reyao {
 
-//服务端收http request，发送http response
 class HttpSession : public SocketStream {
 public:
     HttpSession(std::shared_ptr<Socket> sock, bool owner = true);
@@ -18,9 +17,9 @@ public:
     bool sendResponse(HttpResponse* rsp);
 
 private:
-    Socket::SPtr sock_; //TODO:
+    Socket::SPtr sock_;
     bool owner_;
 };
 
 
-} //namespace reyao
+} // namespace reyao

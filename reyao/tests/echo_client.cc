@@ -8,7 +8,6 @@ using namespace reyao::rpc;
 using namespace echo;
 
 int main(int argc, char** argv) {
-    g_logger->setLevel(LogLevel::INFO);
     Scheduler sche;
     auto addr = IPv4Address::CreateAddress("0.0.0.0", 30000);
     RpcClient client(&sche, addr);

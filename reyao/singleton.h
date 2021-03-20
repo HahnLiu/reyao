@@ -6,14 +6,14 @@ template <typename T>
 class Singleton {
 public:
     static T* GetInstance() {
-        static T instance; //c++11后的静态变量的创建为线程安全
+        static T instance;
         return &instance;
     }
     
 private:
-    Singleton();
+    Singleton() {}
     Singleton(const Singleton&) = delete;
     Singleton& operator=(const Singleton&) = delete;
 };
 
-} //namespace reyao
+} // namespace reyao

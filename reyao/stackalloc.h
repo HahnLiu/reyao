@@ -6,15 +6,19 @@ namespace reyao {
 
 class StackAlloc {
 public:
-    StackAlloc(size_t stack_size, bool protect = true);
+    StackAlloc(size_t stackSize, bool protect = true);
     ~StackAlloc();
 
-    void* top();
-    size_t size();
+    void* top() {
+        return stack_;
+    }
+    size_t size() {
+        return stackSize_;
+    }
 private:
-    void* raw_stack_ = nullptr;
+    void* rawStack_ = nullptr;
     void* stack_ = nullptr;
-    size_t stack_size_;
+    size_t stackSize_;
     bool protect_;
 };
 

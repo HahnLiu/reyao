@@ -28,11 +28,11 @@ using namespace reyao;
 // }
 
 int main(int argc, char** argv) {
-    g_logger->setLevel(LogLevel::WARN);
     int num = 5;
-    // if (argc > 2) {
-    //     num = atoi(argv[1]);
-    // }
+    if (argc > 2) {
+        num = atoi(argv[1]);
+    }
+    qlog::QLog::SetLevel(qlog::LogLevel::WARN);
     Scheduler sh(num);
     sh.startAsync();
     auto addr = IPv4Address::CreateAddress("0.0.0.0", 8010);

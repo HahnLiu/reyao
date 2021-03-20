@@ -8,7 +8,6 @@
 using namespace reyao;
 
 void server() {
-    g_logger->setLevel(LogLevel::INFO);
     Socket::SPtr listen_sock = Socket::CreateTcp();
     auto addr = IPv4Address::CreateAddress("0.0.0.0", 3000);
     listen_sock->bind(*addr);
@@ -17,7 +16,7 @@ void server() {
     LOG_INFO << listen_sock->toString();
 
     auto conn_sock = listen_sock->accept();
-    LOG_INFO << "conn_sock=" << conn_sock;
+    LOG_INFO << "conn_sock=" << conn_sock->toString();
     if (conn_sock) {
         LOG_INFO << conn_sock->toString();
         HttpSession session(conn_sock);
@@ -34,7 +33,6 @@ void server() {
 
 
 void client() {
-    g_logger->setLevel(LogLevel::INFO);
     Socket::SPtr sock = Socket::CreateTcp();
     auto addr = IPv4Address::CreateAddress("0.0.0.0", 3000);
     if (sock->connect(*addr, 2000)) {

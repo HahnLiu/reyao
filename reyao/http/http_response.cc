@@ -3,8 +3,6 @@
 
 namespace reyao {
 
-
-//TODO: 优化以下方法
 const char* HttpStatusToString(const HttpStatus& s) {
     switch (s) {
 #define XX(code, name, string) \
@@ -28,10 +26,10 @@ bool isHttpStatus(int status) {
     return false;
 }
 
-HttpResponse::HttpResponse(uint8_t version, bool keep_alive)
+HttpResponse::HttpResponse(uint8_t version, bool keepAlive)
     : status_(HttpStatus::OK),
       version_(version),
-      keep_alive_(keep_alive) {
+      keepAlive_(keepAlive) {
 
 }
 
@@ -50,14 +48,12 @@ void HttpResponse::delHeader(const std::string& key) {
 }
 
 std::ostream& HttpResponse::dump(std::ostream& os) const {
-    //响应行
     os << "HTTP/" << ((uint32_t)(version_ >> 4))
        << "." << ((uint32_t)(version_ & 0x0F))
        << " " << (uint32_t)status_ << " "
        << (reason_.empty() ? HttpStatusToString(status_) 
           : reason_) << "\r\n";
-    //首部行+主体
-    os << "Connection: " << (keep_alive_ ? 
+    os << "Connection: " << (keepAlive_ ? 
           "Keep-Alive" : "Close") << "\r\n";
     for (auto& it : headers_) {
         if (strcasecmp(it.first.c_str(), "connection") == 0) {
@@ -67,7 +63,7 @@ std::ostream& HttpResponse::dump(std::ostream& os) const {
     }
     if (body_.empty()) {
         os << "\r\n";
-    } else { //FIXME: add chunked
+    } else { //TODO: add chunked
         os << "Content-Length: " << body_.size()
            << "\r\n\r\n" << body_;
     }
@@ -81,4 +77,4 @@ std::string HttpResponse::toString() {
 }
 
 
-} //namespace reyao
+} // namespace reyao

@@ -35,6 +35,6 @@ void RpcServer::handleClient(Socket::SPtr client) {
     client->close();
 }
 
-} //namespace rpc
+} // namespace rpc
 
-} //namespace reyao
+} // namespace reyao

@@ -13,7 +13,7 @@ public:
 
     void lock();
     void unlock();
-    //只用于class Condition
+
     pthread_mutex_t* getMutex() { return &mutex_; }
 
 private:
@@ -88,4 +88,4 @@ private:
     RWLock& rwlock_;
 };
 
-} //namespace reyao
+} // namespace reyao

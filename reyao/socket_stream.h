@@ -28,4 +28,4 @@ private:
     bool owner_;
 };
 
-} //namespace reyao
+} // namespace reyao

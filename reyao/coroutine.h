@@ -30,11 +30,8 @@ public:
     Coroutine(Func func, size_t stack_size);
     ~Coroutine();
 
-    //设置协程执行函数
     void reuse(Func func);
-    //切换到当前协程
     void resume();
-    //挂起当前协程
     void yield();
 
 
@@ -43,7 +40,6 @@ public:
     void setState(Coroutine::State state) { state_ = state; }
     std::string toString(State state);
 
-    //遇到需要等待的事间，让出执行时间
     static void YieldToSuspend();
     static Coroutine::SPtr InitMainCoroutine();
     static Coroutine::SPtr GetMainCoroutine();
@@ -62,7 +58,7 @@ private:
     State state_ = INIT;
 };
 
-// wait保存协程，notify将协程添加到任务队列
+
 class CoroutineCondition {
 public:
     void wait();
@@ -72,4 +68,4 @@ private:
     Coroutine::SPtr co_;
 };
 
-} //namespace reyao
+} // namespace reyao

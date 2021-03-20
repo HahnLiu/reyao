@@ -12,13 +12,13 @@ namespace reyao {
 namespace rpc {
 
 
-template<typename T>
+template<typename RspMessage>
 class TypeTraits {
-    static_assert(std::is_base_of<::google::protobuf::Message, T>::value, 
+    static_assert(std::is_base_of<::google::protobuf::Message, RspMessage>::value, 
                   "T must be subclass of google::protobuf::Message");
 
 public:
-    typedef std::function<void(std::shared_ptr<T>)> ResponseHandler;
+    typedef std::function<void(std::shared_ptr<RspMessage>)> ResponseHandler;
 };
 
 class RpcClient : public NoCopyable {
@@ -26,8 +26,8 @@ public:
     typedef std::shared_ptr<RpcClient> SPtr;
     RpcClient(Scheduler* sche, IPv4Address::SPtr addr): client_(sche, addr) {}
 
-    template<typename T>
-    bool Call(MessageSPtr req, typename TypeTraits<T>::ResponseHandler handler) {
+    template<typename RspMessage>
+    bool Call(MessageSPtr req, typename TypeTraits<RspMessage>::ResponseHandler handler) {
         client_.setConnectCallBack([=](Socket::SPtr conn) {
             LOG_DEBUG << "RpcClient connect to " << client_.getConn()->getPeerAddr()->toString();
             ProtobufCodec codec(conn);
@@ -35,13 +35,13 @@ public:
 
             ByteArray ba;
             MessageSPtr rsp;
-            auto err_msg = codec.receive(rsp);
-            if (err_msg->errcode == ProtobufCodec::kNoError && rsp) {
-                std::shared_ptr<T> concreate_rsp
-                    = std::static_pointer_cast<T>(rsp);
-                handler(concreate_rsp);
+            auto errMsg = codec.receive(rsp);
+            if (errMsg->errcode == ProtobufCodec::kNoError && rsp) {
+                std::shared_ptr<RspMessage> concreateRsp
+                    = std::static_pointer_cast<RspMessage>(rsp);
+                handler(concreateRsp);
             } else {
-                LOG_ERROR << "receive response error: " << err_msg->errstr;
+                LOG_ERROR << "receive response error: " << errMsg->errstr;
             }
             conn->close();
         });
@@ -52,6 +52,6 @@ private:
     TcpClient client_;
 };
 
-} //namespace rpc
+} // namespace rpc
 
-} //namespace reyao
+} // namespace reyao

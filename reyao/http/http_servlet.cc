@@ -37,17 +37,17 @@ int32_t ServletDispatch::handle(const HttpRequest& req,
 }
 
 void ServletDispatch::addServlet(const std::string& uri, Servlet::SPtr servlet) {
-    WriteLock lock(rw_lock_);
+    WriteLock lock(rwlock_);
     servlets_[uri] = servlet;
 }
 
 void ServletDispatch::addServlet(const std::string& uri, FunctionServlet::CallBackFunc func) {
-    WriteLock lock(rw_lock_);
+    WriteLock lock(rwlock_);
     servlets_[uri].reset(new FunctionServlet(func));
 }
 
 void ServletDispatch::addGlobalServlet(const std::string& uri, Servlet::SPtr servlet) {
-    WriteLock lock(rw_lock_);
+    WriteLock lock(rwlock_);
     for (auto it = globals_.begin(); it != globals_.end(); it++) {
         if (it->first == uri) {
             globals_.erase(it);
@@ -61,12 +61,12 @@ void ServletDispatch::addGlobalServlet(const std::string& uri, FunctionServlet::
 }
 
 void ServletDispatch::delServlet(const std::string& uri) {
-    WriteLock lock(rw_lock_);
+    WriteLock lock(rwlock_);
     servlets_.erase(uri);
 }
 
 void ServletDispatch::delGlobalServlet(const std::string& uri) {
-    WriteLock lock(rw_lock_);
+    WriteLock lock(rwlock_);
     for (auto it = globals_.begin(); it != globals_.end(); it++) {
         if (it->first == uri) {
             globals_.erase(it);
@@ -76,13 +76,13 @@ void ServletDispatch::delGlobalServlet(const std::string& uri) {
 }
 
 Servlet::SPtr ServletDispatch::getServlet(const std::string& uri) {
-    ReadLock lock(rw_lock_);
+    ReadLock lock(rwlock_);
     auto it = servlets_.find(uri);
     return it == servlets_.end() ? nullptr : it->second;
 }
 
 Servlet::SPtr ServletDispatch::getGlobalServlet(const std::string& uri) {
-    ReadLock lock(rw_lock_);
+    ReadLock lock(rwlock_);
     for (auto it = globals_.begin(); it != globals_.end(); it++) {
         if (!fnmatch(it->first.c_str(), uri.c_str(), 0)) {
             return it->second;
@@ -92,7 +92,7 @@ Servlet::SPtr ServletDispatch::getGlobalServlet(const std::string& uri) {
 }
 
 Servlet::SPtr ServletDispatch::getMatchServlet(const std::string& uri) {
-    ReadLock lock(rw_lock_);
+    ReadLock lock(rwlock_);
     auto it = servlets_.find(uri);
     if (it != servlets_.end()) {
         return it->second;
@@ -122,4 +122,4 @@ int32_t NoFoundServlet::handle(const HttpRequest& req,
     return 0;
 }
 
-} //namespace reyao
+} // namespace reyao

@@ -14,7 +14,7 @@ Socket::Socket(int type, int family, int protocol)
     : type_(type),
       family_(family),
       protocol_(protocol) {
-    // newSock();
+
 }
 
 Socket::~Socket() {
@@ -79,7 +79,6 @@ int64_t Socket::getRecvTimeout() const {
 void Socket::setRecvTimeout(int64_t timeout) {
     timeval tv;
     tv.tv_sec = timeout / 1000;
-    //TODO: why % 1000 * 1000
     tv.tv_usec = timeout % 1000 * 1000;
     setOption(SOL_SOCKET, SO_RCVTIMEO, tv);
 }
@@ -133,9 +132,8 @@ bool Socket::setOption(int level, int option, const void *result, socklen_t len)
     }
 }
 
-//
-// @brief init connected Socket
-//
+
+//  init connected Socket
 bool Socket::init(int sockfd) {
     auto fdctx = g_fdmanager->getFdContext(sockfd);
     if (fdctx && 
@@ -170,7 +168,6 @@ void Socket::newSock() {
         LOG_ERROR << "newSock error=" 
                   << strerror(errno);
     } else {
-        // FIXME:
         setReuseAddr();
         setNoDelay();
     }
@@ -237,7 +234,6 @@ bool Socket::connect(const IPv4Address& addr, int64_t timeout) {
     } else {
         if (::connect_with_timeout(sockfd_, addr.getAddr(), 
                                    addr.getAddrLen(), timeout)) {
-  
             close();
             return false; 
         }
@@ -254,35 +250,11 @@ int Socket::send(const void *buf, size_t len, int flags) {
     }
     return -1;
 }
-    
-int Socket::send(iovec *buf, int iovcnt, int flags) {
-    if (isConnected()) {
-        msghdr msg;
-        memset(&msg, 0, sizeof(msg));
-        msg.msg_iov = buf;
-        msg.msg_iovlen = iovcnt;
-        return ::sendmsg(sockfd_, &msg, flags);
-    }
-    return -1;
-}
 
 int Socket::sendTo(const void *buf, size_t len, const IPv4Address& to, int flags) {
     if (isConnected()) {
         return ::sendto(sockfd_, buf, len, flags, 
                         to.getAddr(), to.getAddrLen());
-    }
-    return -1;
-}
-
-int Socket::sendTo(iovec *buf, int iovcnt, const IPv4Address& to, int flags) {
-    if (isConnected()) {
-        msghdr msg;
-        memset(&msg, 0, sizeof(msg));
-        msg.msg_iov = buf;
-        msg.msg_iovlen = iovcnt;
-        msg.msg_name = (void*)to.getAddr();
-        msg.msg_namelen = to.getAddrLen();
-        return ::sendmsg(sockfd_, &msg, flags);
     }
     return -1;
 }
@@ -293,36 +265,12 @@ int Socket::recv(void *buf, size_t len, int flags) {
     }
     return -1;
 }
-
-int Socket::recv(iovec *buf, int iovcnt, int flags) {
-    if (isConnected()) {
-        msghdr msg;
-        memset(&msg, 0, sizeof(msg));
-        msg.msg_iov = buf;
-        msg.msg_iovlen = iovcnt;
-        return ::recvmsg(sockfd_, &msg, flags);
-    }
-    return -1;
-}
-    
+ 
 int Socket::recvFrom(void *buf, size_t len, const IPv4Address& from, int flags) {
     if (isConnected()) {
         socklen_t addrlen = from.getAddrLen();
         return ::recvfrom(sockfd_, buf, len, flags, 
                           (sockaddr*)from.getAddr(), &addrlen);
-    }
-    return -1;
-}
-    
-int Socket::recvFrom(iovec *buf, int iovcnt, const IPv4Address& from, int flags) {
-    if (isConnected()) {
-        msghdr msg;
-        memset(&msg, 0, sizeof(msg));
-        msg.msg_iov = buf;
-        msg.msg_iovlen = iovcnt;
-        msg.msg_name = (void*)from.getAddr();
-        msg.msg_namelen = from.getAddrLen();
-        return ::recvmsg(sockfd_, &msg, flags);
     }
     return -1;
 }
@@ -344,4 +292,4 @@ Socket::SPtr Socket::CreateTcp() {
     return sock;
 }
     
-} //namespace reyao
+} // namespace reyao

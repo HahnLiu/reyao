@@ -6,17 +6,13 @@
 
 using namespace reyao;
 
-//TODO: no test yet
-
 void ipv4_test() {
     IPv4Address addr("127.0.0.1", 30000);
     LOG_INFO << addr.toString();
 }
 
 void getHostName(const char* addr) {
-    //TODO: may block
-    // const sockaddr_in& addr = IPv4Address::GetHostByName("www.baidu.com", 80);
-    // IPv4Address ipaddr(addr);
+
     auto ipaddr = IPv4Address::CreateByName(addr, 80);
     LOG_INFO << ipaddr->toString();
     Worker::GetWorker()->getScheduler()->stop();

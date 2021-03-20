@@ -18,7 +18,6 @@ public:
     Servlet(const std::string& name);
     virtual ~Servlet() {}
 
-    //TODO: int32_t
     virtual int32_t handle(const HttpRequest& req,
                            HttpResponse* rsp,
                            const HttpSession& session) = 0;
@@ -76,7 +75,7 @@ private:
     //url(/xxx/*) --> servlet
     ServletVec globals_;
     Servlet::SPtr default_;
-    RWLock rw_lock_;
+    RWLock rwlock_;
 };
 
 class NoFoundServlet : public Servlet {
@@ -91,4 +90,4 @@ private:
 };
 
 
-} //namespace reyao
+} // namespace reyao

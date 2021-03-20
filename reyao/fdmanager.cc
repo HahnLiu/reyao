@@ -17,31 +17,31 @@ FdContext::~FdContext() {
 void FdContext::init() {
     struct stat fd_stat;
     if (fstat(fd_, &fd_stat) != -1) {
-        is_sock_ = S_ISSOCK(fd_stat.st_mode);
+        isSock_ = S_ISSOCK(fd_stat.st_mode);
     }
 
-    if (is_sock_) {
+    if (isSock_) {
         int flag = fcntl_origin(fd_, F_GETFL, 0);
         if ((flag & O_NONBLOCK) == 0) {
             fcntl_origin(fd_, F_SETFL, flag | O_NONBLOCK);
         }
-        is_sys_nonblock_ = true;
+        isSysNonblock_ = true;
     }
 }
 
 void FdContext::setTimeout(int type, int64_t timeout) {
     if (type == SO_RCVTIMEO) {
-        recv_timeout_ = timeout;
+        recvTimeout_ = timeout;
     } else if (type == SO_SNDTIMEO) {
-        send_timeout_ = timeout;
+        sendTimeout_ = timeout;
     }
 }
 
 int64_t FdContext::getTimeout(int type) {
     if (type == SO_RCVTIMEO) {
-        return recv_timeout_;
+        return recvTimeout_;
     } else {
-        return send_timeout_;
+        return sendTimeout_;
     }
 }
 
@@ -75,4 +75,4 @@ void FdManager::delFd(int fd) {
     }
 }
 
-} //namespace reyao
+} // namespace reyao

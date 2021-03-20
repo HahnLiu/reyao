@@ -11,13 +11,13 @@
 
 namespace reyao {
 
-static size_t s_max_req_buffer_size = 4 * 1024;
-static size_t s_max_res_buffer_size = 64 * 1024 * 1024;
+static size_t s_maxReqBufferSize = 4 * 1024;
+static size_t s_maxResBufferSize = 64 * 1024 * 1024;
 
 HttpParser::HttpParser(SocketStream* stream)
     : stream_(stream),
       ba_(),
-      content_len_(0) {
+      contentLen_(0) {
 }
 
 HttpRequestParser::HttpRequestParser(SocketStream* stream, HttpRequest* req)
@@ -27,18 +27,17 @@ HttpRequestParser::HttpRequestParser(SocketStream* stream, HttpRequest* req)
 
 bool HttpRequestParser::parseRequest() {
     while (!finish_ && !error_) {
-        if (read_size_ == s_max_req_buffer_size) {
+        if (readSize_ == s_maxReqBufferSize) {
             return false;
         }
-        int len = stream_->read(&ba_, s_max_req_buffer_size);
+        int len = stream_->read(&ba_, s_maxReqBufferSize);
 
         if (len <= 0) {
-            //请求报文不完整或接收超时
             return false;
         }
 
         while (!error_) {
-            if (parse_state_ == PARSE_FIRST_LINE) {
+            if (parseState_ == PARSE_FIRST_LINE) {
                 LOG_INFO << "parse";
                 const char* start = ba_.peek();
                 const char* end = ba_.findCRLF();
@@ -48,7 +47,7 @@ bool HttpRequestParser::parseRequest() {
                 ba_.setReadPos(ba_.getReadPos() + end - start + 2);
                 parseFirstLine(start, end);
 
-            } else if (parse_state_ == PARSE_HEADER) {
+            } else if (parseState_ == PARSE_HEADER) {
                 const char* start = ba_.peek();
                 const char* end = ba_.findCRLF();
                 if (end == nullptr) {
@@ -56,8 +55,8 @@ bool HttpRequestParser::parseRequest() {
                 }
                 ba_.setReadPos(ba_.getReadPos() + end - start + 2);
                 parseHeader(start, end);
-            } else if (parse_state_ == PARSE_BODY) {
-                if (!chunked_ && !content_len_) {
+            } else if (parseState_ == PARSE_BODY) {
+                if (!chunked_ && !contentLen_) {
                     finish_ = true;
                 }
                 if (chunked_) {
@@ -95,7 +94,6 @@ void HttpRequestParser::parseFirstLine(const char* begin, const char* end) {
     } else if (version == "HTTP/1.1") {
         req_->setVersion(0x11);
     } else {
-        //FIXME:只支持1.0和1.1
         error_ = true;
         return;
     }
@@ -111,14 +109,12 @@ void HttpRequestParser::parseFirstLine(const char* begin, const char* end) {
     end = parseURI(begin, end, '?');
     end = parseURI(begin, end, '/');
 
-    parse_state_ = PARSE_HEADER;
+    parseState_ = PARSE_HEADER;
 }
 
 void HttpRequestParser::parseHeader(const char* begin, const char* end) {
-    //请求行结束应该是'\r\n\r\n'，在parseLine时得到的是'\r\n'
-    //将其置0，所以如果解析header时开头是'\0'说明header解析完成
     if (*begin == '\r') {
-        parse_state_ = PARSE_BODY;
+        parseState_ = PARSE_BODY;
         return;
     }
     const char* temp = std::find(begin, end, ':');
@@ -131,7 +127,7 @@ void HttpRequestParser::parseHeader(const char* begin, const char* end) {
         }
         if (!chunked_) {
             if (!strcasecmp(title.c_str(), "content-length")) {
-                content_len_ = std::stoi(value);
+                contentLen_ = std::stoi(value);
             }
         }
         req_->addHeader(title, value);
@@ -142,7 +138,7 @@ void HttpRequestParser::parseHeader(const char* begin, const char* end) {
 
 void HttpRequestParser::parseChunkedBody() {
     while (!error_) {
-        if (chunk_size_ == PARSE_CHUNK_SIZE) {
+        if (chunkSize_ == PARSE_CHUNK_SIZE) {
             const char* start = ba_.peek();
             const char* end = ba_.findCRLF();
             if (end == nullptr) {
@@ -150,23 +146,23 @@ void HttpRequestParser::parseChunkedBody() {
             }
             ba_.setReadPos(ba_.getReadPos() + end - start + 2);
             std::string hex(start, end - start);
-            chunk_size_ = HexToDec(hex);
-            if (chunk_size_ == (size_t)-1) {
+            chunkSize_ = HexToDec(hex);
+            if (chunkSize_ == (size_t)-1) {
                 error_ = true;
                 break;
             } 
-            if (chunk_size_ == 0) {
+            if (chunkSize_ == 0) {
                 req_->setBody(body_);
                 finish_ = true;
                 break;
             }
-            chunk_state_ = PARSE_CHUNK_CONTENT;
-        } else if (chunk_state_ == PARSE_CHUNK_CONTENT) {
-                if (chunk_size_ + 2 <= ba_.getReadSize()) {
-                    body_ += std::string(ba_.peek(), chunk_size_ + 2);
-                    ba_.setReadPos(ba_.getReadPos() + chunk_size_ + 2);
-                    chunk_size_ = 0;
-                    chunk_state_ = PARSE_CHUNK_SIZE;
+            chunkState_ = PARSE_CHUNK_CONTENT;
+        } else if (chunkState_ == PARSE_CHUNK_CONTENT) {
+                if (chunkSize_ + 2 <= ba_.getReadSize()) {
+                    body_ += std::string(ba_.peek(), chunkSize_ + 2);
+                    ba_.setReadPos(ba_.getReadPos() + chunkSize_ + 2);
+                    chunkSize_ = 0;
+                    chunkState_ = PARSE_CHUNK_SIZE;
                 } else {
                     break;
                 }
@@ -175,12 +171,12 @@ void HttpRequestParser::parseChunkedBody() {
 }
 
 void HttpRequestParser::parseFixedBody() {
-    if (content_len_ == 0) {
+    if (contentLen_ == 0) {
         //body为chunk或没有body
         finish_ = true;
-    } else if (ba_.getReadSize() >= content_len_) {
-        req_->setBody(std::string(ba_.peek(), content_len_));
-        ba_.setReadPos(ba_.getReadPos() + content_len_);
+    } else if (ba_.getReadSize() >= contentLen_) {
+        req_->setBody(std::string(ba_.peek(), contentLen_));
+        ba_.setReadPos(ba_.getReadPos() + contentLen_);
         finish_ = true;
     }
 }
@@ -216,18 +212,17 @@ HttpResponseParser::HttpResponseParser(SocketStream* stream, HttpResponse* rsp)
 
 bool HttpResponseParser::parseResponse() {
     while (!finish_ && !error_) {
-        if (read_size_ == s_max_req_buffer_size) {
+        if (readSize_ == s_maxResBufferSize) {
             return false;
         }
-        int len = stream_->read(&ba_, s_max_res_buffer_size);
+        int len = stream_->read(&ba_, s_maxResBufferSize);
 
         if (len <= 0) {
-            //请求报文不完整或接收超时
             return false;
         }
 
         while (!error_) {
-            if (parse_state_ == PARSE_FIRST_LINE) {
+            if (parseState_ == PARSE_FIRST_LINE) {
                 const char* start = ba_.peek();
                 const char* end = ba_.findCRLF();
                 if (end == nullptr) {
@@ -236,7 +231,7 @@ bool HttpResponseParser::parseResponse() {
                 ba_.setReadPos(ba_.getReadPos() + end - start + 2);
                 parseFirstLine(start, end);
 
-            } else if (parse_state_ == PARSE_HEADER) {
+            } else if (parseState_ == PARSE_HEADER) {
                 const char* start = ba_.peek();
                 const char* end = ba_.findCRLF();
                 if (end == nullptr) {
@@ -244,8 +239,8 @@ bool HttpResponseParser::parseResponse() {
                 }
                 ba_.setReadPos(ba_.getReadPos() + end - start + 2);
                 parseHeader(start, end);
-            } else if (parse_state_ == PARSE_BODY) {
-                if (!chunked_ && !content_len_) {
+            } else if (parseState_ == PARSE_BODY) {
+                if (!chunked_ && !contentLen_) {
                     finish_ = true;
                 }
                 if (chunked_) {
@@ -268,7 +263,6 @@ void HttpResponseParser::parseFirstLine(const char* begin, const char* end) {
         error_ = true;
         return;
     }
-    //TODO: 减少重复
     std::string version(begin, space - begin);
     if (version == "HTTP/1.0") {
        rsp_->setVersion(0x10);
@@ -294,13 +288,12 @@ void HttpResponseParser::parseFirstLine(const char* begin, const char* end) {
     rsp_->setReason(std::string(space, end - space));
 
 
-    parse_state_ = PARSE_HEADER;
+    parseState_ = PARSE_HEADER;
 }
 
-//TODO:写个模板减少headers和body的重复
 void HttpResponseParser::parseHeader(const char* begin, const char* end) {
     if (*begin == '\r') {
-        parse_state_ = PARSE_BODY;
+        parseState_ = PARSE_BODY;
         return;
     }
     const char* temp = std::find(begin, end, ':');
@@ -313,7 +306,7 @@ void HttpResponseParser::parseHeader(const char* begin, const char* end) {
         }
         if (!chunked_) {
             if (!strcasecmp(title.c_str(), "content-length")) {
-                content_len_ = std::stoi(value);
+                contentLen_ = std::stoi(value);
             }
         }
         rsp_->addHeader(title, value);
@@ -324,7 +317,7 @@ void HttpResponseParser::parseHeader(const char* begin, const char* end) {
 
 void HttpResponseParser::parseChunkedBody() {
     while (!error_) {
-        if (chunk_size_ == PARSE_CHUNK_SIZE) {
+        if (chunkSize_ == PARSE_CHUNK_SIZE) {
             const char* start = ba_.peek();
             const char* end = ba_.findCRLF();
             if (end == nullptr) {
@@ -332,23 +325,23 @@ void HttpResponseParser::parseChunkedBody() {
             }
             ba_.setReadPos(ba_.getReadPos() + end - start + 2);
             std::string hex(start, end - start);
-            chunk_size_ = HexToDec(hex);
-            if (chunk_size_ == (size_t)-1) {
+            chunkSize_ = HexToDec(hex);
+            if (chunkSize_ == (size_t)-1) {
                 error_ = true;
                 break;
             } 
-            if (chunk_size_ == 0) {
+            if (chunkSize_ == 0) {
                 rsp_->setBody(body_);
                 finish_ = true;
                 break;
             }
-            chunk_state_ = PARSE_CHUNK_CONTENT;
-        } else if (chunk_state_ == PARSE_CHUNK_CONTENT) {
-                    if (chunk_size_ + 2 <= ba_.getReadSize()) {
-                    body_ += std::string(ba_.peek(), chunk_size_ + 2);
-                    ba_.setReadPos(ba_.getReadPos() + chunk_size_ + 2);
-                    chunk_size_ = 0;
-                    chunk_state_ = PARSE_CHUNK_SIZE;
+            chunkState_ = PARSE_CHUNK_CONTENT;
+        } else if (chunkState_ == PARSE_CHUNK_CONTENT) {
+                    if (chunkSize_ + 2 <= ba_.getReadSize()) {
+                    body_ += std::string(ba_.peek(), chunkSize_ + 2);
+                    ba_.setReadPos(ba_.getReadPos() + chunkSize_ + 2);
+                    chunkSize_ = 0;
+                    chunkState_ = PARSE_CHUNK_SIZE;
                 } else {
                     break;
                 }
@@ -357,14 +350,14 @@ void HttpResponseParser::parseChunkedBody() {
 }
 
 void HttpResponseParser::parseFixedBody() {
-    if (content_len_ == 0) {
-        //body为chunk或没有body
+    if (contentLen_ == 0) {
+        //body is chunk or no body
         finish_ = true;
-    } else if (ba_.getReadSize() >= content_len_) {
-        rsp_->setBody(std::string(ba_.peek(), content_len_));
-        ba_.setReadPos(ba_.getReadPos() + content_len_);
+    } else if (ba_.getReadSize() >= contentLen_) {
+        rsp_->setBody(std::string(ba_.peek(), contentLen_));
+        ba_.setReadPos(ba_.getReadPos() + contentLen_);
         finish_ = true;
     }
 }
 
-} //namespace reyao
+} // namespace reyao

@@ -16,7 +16,7 @@ public:
 	typedef std::shared_ptr<Thread> SPtr;
 	typedef std::function<void ()> ThreadFunc;
 
-	explicit Thread(ThreadFunc cb, const std::string& name);
+	explicit Thread(ThreadFunc cb, const std::string& name = "thread");
 	~Thread();
 
 	static void SetThreadName(const std::string& name);
@@ -27,16 +27,16 @@ public:
 	void start();
 	void join();
 	pid_t getId() const { return id_;}
-	bool isStart() const { return started_; }
+	bool isStart() const { return running_; }
 
 private:
-	pthread_t tid_;          	//线程结构体
-	pid_t  id_;              	//线程id
-	ThreadFunc cb_;             //回调函数
-    std::string name_;   		//线程名称
-    CountDownLatch latch_;      //确保线程启动
-	bool started_;       		//线程开始标志
-	bool joined_;        		//线程回收标志
+	pthread_t tid_; 
+	pid_t  id_; 
+	ThreadFunc cb_; 
+    std::string name_;  
+    CountDownLatch latch_;
+	bool running_;       
+	bool joined_;   
 }; 
 
-} //namespace reyao
+} // namespace reyao

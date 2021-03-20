@@ -9,14 +9,16 @@
 #include <stdarg.h>
 #include <sys/epoll.h>
 
+#include <iostream>
+
 #include <memory>
 #include <functional>
 
 namespace reyao {
 
-static thread_local bool t_hook_enable = false;
+static thread_local bool t_hookEnable = false;
 
-static int64_t s_connect_timeout = 5000;
+static int64_t s_connectTimeout = 5000;
 
 #define HOOK_FUNC(XX) \
     XX(sleep) \
@@ -49,7 +51,6 @@ void hook_init() {
         return;
     }
 #define XX(name) name ## _origin = (name ## Func_t)dlsym(RTLD_NEXT, #name);
-    //将 HOOK-FUNC 里的函数展开执行 XX(name) 宏
     HOOK_FUNC(XX);
 #undef XX
 }
@@ -60,34 +61,28 @@ struct HookIniter {
     }
 };
 
-static HookIniter s_hook_initer; //在 main 之前 hook_init()
+static HookIniter s_hook_initer;
 
 bool IsHookEnable() {
-    return t_hook_enable;
+    return t_hookEnable;
 }
 
 void SetHookEnable(bool flag) {
-    t_hook_enable = flag;
+    t_hookEnable = flag;
 }
 
-struct timer_info {
+struct timerInfo {
     int cancelled = 0;
 };
 
-// 在 socket 函数中，除了 connect 函数以外都可以执行 do_io 的底层逻辑
-// 进行读写操作，如果读写不成功，则放入调度器的 epoller 的 IO 事件等待队列
-// 对于 connect 函数，由于其原生函数返回错误码，所以需要单独作为写事件放进 IO 队列
-// 并在超时返回时设置错误码
-
 template <typename OriginFunc, typename ... Args>
-static ssize_t do_io(int fd, OriginFunc func, const char* hook_func_name,
-                     uint32_t type, int timeout_so,  Args&& ... args) {
+static ssize_t do_io(int fd, OriginFunc func, const char* hookFuncName,
+                     uint32_t type, int timeoutSo,  Args&& ... args) {
     
-    // LOG_DEBUG << "in do_io " << "fd= " << fd << " hook_func=" << hook_func_name;
-    if (!t_hook_enable) {
+    if (!t_hookEnable) {
         return func(fd, std::forward<Args>(args)...);
     }
-    LOG_DEBUG << "in do_io " << "fd= " << fd << " hook_func=" << hook_func_name;
+    // LOG_DEBUG << "in do_io " << "fd= " << fd << " hookFunc=" << hookFuncName;
     auto fdctx = g_fdmanager->getFdContext(fd);
     if (!fdctx) {
         return func(fd, std::forward<Args>(args)...);
@@ -105,8 +100,8 @@ static ssize_t do_io(int fd, OriginFunc func, const char* hook_func_name,
     }
 
     // 获取 sockfd 设置的超时时间（通过 setsockopt 的 SO_RCVTIMEO 和 SO_SNDTIMEO）
-    int64_t timeout = fdctx->getTimeout(timeout_so);
-    std::shared_ptr<timer_info> tinfo(new timer_info);
+    int64_t timeout = fdctx->getTimeout(timeoutSo);
+    std::shared_ptr<timerInfo> tinfo(new timerInfo);
 
 retry:  
     // 对非阻塞的 sockfd 调用一次 io 函数，如果没准备好（返回 EAGAIN）
@@ -117,7 +112,7 @@ retry:
     }
     if (n == -1 && errno == EAGAIN) {
         Timer::SPtr timer;
-        std::weak_ptr<timer_info> winfo(tinfo);
+        std::weak_ptr<timerInfo> winfo(tinfo);
 
         // 设置定时器
         if (timeout != -1) {                                                                 
@@ -138,13 +133,14 @@ retry:
         // 并将当前协程放入 epoll 队列的 IOEvent 中，触发 IO 事件时则继续执行该协程
         // 如果添加失败，则取消记录超时的定时器并直接返回
         if (!Worker::AddEvent(fd, type)) {
-            LOG_ERROR << hook_func_name << "addEvent("
+            LOG_ERROR << hookFuncName << "addEvent("
                         << fd << ". " << type << ")";
             if (timer) {
                 timer->cancel();
-                return -1;
             }
-            // 主动让出执行
+            return -1;
+        } else {
+            LOG_DEBUG << "regsiter " << fd;
             Coroutine::YieldToSuspend();
 
             if (timer) {
@@ -171,11 +167,9 @@ extern "C" {
     HOOK_FUNC(XX);
 #undef XX
 
-// sleep 系列函数统一用调度器的定时器实现
-// 触发定时事件时将当前协程重新加入调度器
 
 unsigned int sleep(unsigned int seconds) {
-    if (!reyao::t_hook_enable) {
+    if (!reyao::t_hookEnable) {
         return sleep_origin(seconds);
     }
     auto co = reyao::Coroutine::GetCurCoroutine();
@@ -189,7 +183,7 @@ unsigned int sleep(unsigned int seconds) {
 }
 
 int usleep(useconds_t usec) {
-    if (!reyao::t_hook_enable) {
+    if (!reyao::t_hookEnable) {
         return usleep_origin(usec);
     }
     auto co = reyao::Coroutine::GetCurCoroutine();
@@ -204,7 +198,7 @@ int usleep(useconds_t usec) {
 
 
 int nanosleep(const struct timespec* req, struct timespec* rem) {
-    if (!reyao::t_hook_enable) {
+    if (!reyao::t_hookEnable) {
         return nanosleep_origin(req, rem);
     }
     int64_t timeout = req->tv_sec * 1000 + req->tv_nsec / 1000000;
@@ -219,7 +213,7 @@ int nanosleep(const struct timespec* req, struct timespec* rem) {
 }
 
 int socket(int domain, int type, int protocol) {
-    if (!reyao::t_hook_enable) {
+    if (!reyao::t_hookEnable) {
         return socket_origin(domain, type, protocol);
     }
     int fd = socket_origin(domain, type, protocol);
@@ -232,7 +226,7 @@ int socket(int domain, int type, int protocol) {
 
 int connect_with_timeout(int sockfd, const struct sockaddr* addr,
             socklen_t addrlen, int64_t timeout) {
-    if (!reyao::t_hook_enable) {
+    if (!reyao::t_hookEnable) {
         return connect_origin(sockfd, addr, addrlen);
     }
     auto fdctx = g_fdmanager->getFdContext(sockfd);
@@ -256,8 +250,8 @@ int connect_with_timeout(int sockfd, const struct sockaddr* addr,
 
     auto worker = reyao::Worker::GetWorker();
     reyao::Timer::SPtr timer;
-    std::shared_ptr<reyao::timer_info> tinfo(new reyao::timer_info);
-    std::weak_ptr<reyao::timer_info> winfo(tinfo);
+    std::shared_ptr<reyao::timerInfo> tinfo(new reyao::timerInfo);
+    std::weak_ptr<reyao::timerInfo> winfo(tinfo);
 
     if (timeout != -1) {
         timer = worker->getScheduler()->addConditonTimer(timeout, [winfo, sockfd]() {
@@ -303,7 +297,7 @@ int connect_with_timeout(int sockfd, const struct sockaddr* addr,
 
 int connect(int sockfd, const struct sockaddr* addr,
             socklen_t addrlen) {
-    return connect_with_timeout(sockfd, addr, addrlen, reyao::s_connect_timeout);
+    return connect_with_timeout(sockfd, addr, addrlen, reyao::s_connectTimeout);
 }
 
 int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
@@ -316,7 +310,7 @@ int accept(int sockfd, struct sockaddr* addr, socklen_t* addrlen) {
 }
 
 int close(int fd) {
-    if (!reyao::t_hook_enable) {
+    if (!reyao::t_hookEnable) {
         return close_origin(fd);
     }
 
@@ -330,67 +324,67 @@ int close(int fd) {
 
 ssize_t read(int fd, void *buf, size_t count) {
     return reyao::do_io(fd, read_origin, "read", EPOLLIN,
-                      SO_RCVTIMEO, buf, count);
+                        SO_RCVTIMEO, buf, count);
 }
 
 ssize_t write(int fd, const void *buf, size_t count) {
     return reyao::do_io(fd, write_origin, "write", EPOLLOUT,
-                      SO_SNDTIMEO, buf, count);
+                        SO_SNDTIMEO, buf, count);
 }
 
 ssize_t readv(int fd, const struct iovec *iov, int iovcnt) {
     return reyao::do_io(fd, readv_origin, "readv", EPOLLIN,
-                      SO_RCVTIMEO, iov, iovcnt);
+                        SO_RCVTIMEO, iov, iovcnt);
 }
 
 ssize_t writev(int fd, const struct iovec *iov, int iovcnt) {
     return reyao::do_io(fd, writev_origin, "writev", EPOLLOUT,
-                      SO_SNDTIMEO, iov, iovcnt);
+                        SO_SNDTIMEO, iov, iovcnt);
 }
 
 ssize_t recv(int sockfd, void *buf, size_t len, int flags) {
     return reyao::do_io(sockfd, recv_origin, "recv", EPOLLIN,
-                      SO_RCVTIMEO, buf, len, flags);
+                        SO_RCVTIMEO, buf, len, flags);
 }
 
 ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
                  struct sockaddr *src_addr, socklen_t *addrlen) {
     return reyao::do_io(sockfd, recvfrom_origin, "recvfrom", EPOLLIN,
-                      SO_RCVTIMEO, buf, len, flags, src_addr, addrlen);
+                        SO_RCVTIMEO, buf, len, flags, src_addr, addrlen);
 }
 
 ssize_t recvmsg(int sockfd, struct msghdr *msg, int flags) {
     return reyao::do_io(sockfd, recvmsg_origin, "recvmsg", EPOLLIN,
-                      SO_RCVTIMEO, msg, flags);
+                        SO_RCVTIMEO, msg, flags);
 }
 
 int recvmmsg(int sockfd, struct mmsghdr *msgvec, 
              unsigned int vlen, int flags, 
              struct timespec *timeout) {
     return reyao::do_io(sockfd, recvmmsg_origin, "recvmmsg", EPOLLIN,
-                      SO_RCVTIMEO, msgvec, vlen, flags, timeout);
+                        SO_RCVTIMEO, msgvec, vlen, flags, timeout);
 }
 
 ssize_t send(int sockfd, const void *buf, size_t len, int flags) {
     return reyao::do_io(sockfd, send_origin, "send", EPOLLOUT,
-                      SO_SNDTIMEO, buf, len, flags);
+                        SO_SNDTIMEO, buf, len, flags);
 }
 
 ssize_t sendto(int sockfd, const void *buf, size_t len, int flags,
                const struct sockaddr *dest_addr, socklen_t addrlen) {
     return reyao::do_io(sockfd, sendto_origin, "sendto", EPOLLOUT,
-                      SO_SNDTIMEO, buf, len, flags, dest_addr, addrlen);
+                        SO_SNDTIMEO, buf, len, flags, dest_addr, addrlen);
 }
 
 ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags) {
     return reyao::do_io(sockfd, sendmsg_origin, "sendmsg", EPOLLOUT,
-                      SO_SNDTIMEO, msg, flags);
+                        SO_SNDTIMEO, msg, flags);
 }
 
 int sendmmsg(int sockfd, struct mmsghdr *msgvec,
 		     unsigned int vlen, int flags) {
     return reyao::do_io(sockfd, sendmmsg_origin, "sendmmsg", EPOLLOUT,
-                      SO_SNDTIMEO, msgvec, vlen, flags);
+                        SO_SNDTIMEO, msgvec, vlen, flags);
 }
 
 int fcntl(int fd, int cmd, ... /* arg */ ) {
@@ -410,8 +404,8 @@ int fcntl(int fd, int cmd, ... /* arg */ ) {
                 // 用户设置 NONBLOCK
                 fdctx->setUserNonBlock(arg & O_NONBLOCK);
                 
-                // 对于是否真正地对 fd 设置非阻塞标志，看的是 fdctx 中的 sys_non_block 标志
-                // sys_non_block 在初始化 fdctx 时默认为 true
+                // 对于是否真正地对 fd 设置非阻塞标志，看的是 fdctx 中的 sysNonBlock 标志
+                // sysNonBlock 在初始化 fdctx 时默认为 true
                 if(fdctx->getSysNonBlock()) {
                     arg |= O_NONBLOCK;
                 } else {
@@ -430,8 +424,8 @@ int fcntl(int fd, int cmd, ... /* arg */ ) {
                 }
                 // 只针对 sockfd
 
-                // 用户读写 sockfd 的 NonBlock 标志，其实只是将结果放在 fdctx 的 user_non_bolck 中
-                // 使得返回结果看起来与原生函数一致，实际是否阻塞看的是看的是 fdctx 中的 sys_non_block 标志
+                // 用户读写 sockfd 的 NonBlock 标志，其实只是将结果放在 fdctx 的 userNonBolck 中
+                // 使得返回结果看起来与原生函数一致，实际是否阻塞看的是看的是 fdctx 中的 sysNonBlock 标志
                 if(fdctx->getUserNonBlock()) {
                     return arg | O_NONBLOCK;
                 } else {
@@ -537,7 +531,7 @@ int getsockopt(int sockfd, int level, int optname,
 
 int setsockopt(int sockfd, int level, int optname,
                const void *optval, socklen_t optlen) {
-    if (!reyao::t_hook_enable) {
+    if (!reyao::t_hookEnable) {
         return setsockopt_origin(sockfd, level, optname, optval, optlen);
     }
     if (level == SOL_SOCKET) {
@@ -554,4 +548,4 @@ int setsockopt(int sockfd, int level, int optname,
 }
 
 
-}
+} // extern "C"

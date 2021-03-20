@@ -25,7 +25,12 @@ public:
     Socket(int type, int family, int protocol = 0);
     ~Socket();
 
-    int getType() const { return type_;}
+    std::ostream& operator<<(std::ostream& os) {
+        os << toString();
+        return os;
+    }
+
+    int getType() const { return type_; }
     int getFamily() const { return family_; }
     int getProtocol() const { return protocol_; }
     int getSockfd() const { return sockfd_; }
@@ -63,13 +68,9 @@ public:
     bool close();
     bool connect(const IPv4Address& addr, int64_t timeout = -1);
     int send(const void* buf, size_t len, int flags = 0);
-    int send(iovec* buf, int iovcnt, int flags = 0);
     int sendTo(const void* buf, size_t len, const IPv4Address& to, int flags = 0);
-    int sendTo(iovec* buf, int iovcnt, const IPv4Address& to, int flags = 0);
     int recv(void* buf, size_t len, int flags = 0);
-    int recv(iovec* buf, int iovcnt, int flags = 0);
     int recvFrom(void* buf, size_t len, const IPv4Address& from, int flags = 0);
-    int recvFrom(iovec* buf, int iovcnt, const IPv4Address& from, int flags = 0);
 
     bool cancelRead();
     bool cancelWrite();
@@ -87,4 +88,4 @@ private:
     IPv4Address::SPtr peer_;
 };
 
-} //namespace reyao
+} // namespace reyao

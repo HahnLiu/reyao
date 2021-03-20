@@ -11,7 +11,7 @@ class WorkerThread : public NoCopyable {
 public:
     typedef std::unique_ptr<WorkerThread> UPtr;
 
-    WorkerThread(Scheduler* scheduler,
+    WorkerThread(Scheduler* sche,
                  const std::string& name = "worker");
     ~WorkerThread();
 
@@ -24,4 +24,4 @@ private:
 };
 
 
-} //namespace reyao
+} // namespace reyao

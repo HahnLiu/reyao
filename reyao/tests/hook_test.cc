@@ -71,7 +71,6 @@ void test_sock() {
 }
 
 int main(int argc, char** argv) {
-    g_logger->setLevel(LogLevel::INFO);
     Scheduler sh;
     sh.startAsync();
     sh.addTask(test_sleep);

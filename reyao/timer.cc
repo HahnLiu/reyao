@@ -12,7 +12,7 @@ Timer::Timer(int64_t interval, std::function<void()> func,
       recursive_(recursive),
       interval_(interval),
       func_(func) {
-    expire_ = GetCurrentTime() + interval_;
+    expire_ = GetCurrentMs() + interval_;
 }
 
 Timer::Timer(int64_t expire) {
@@ -22,7 +22,7 @@ Timer::Timer(int64_t expire) {
 bool Timer::cancel() {
     MutexGuard lock(manager_->mutex_);
     if (func_) {
-        func_ = nullptr; //TODO:
+        func_ = nullptr;
         auto it = manager_->timers_.find(shared_from_this());
         if (it == manager_->timers_.end()) {
             LOG_ERROR << "remove an unexisted timer";
@@ -44,19 +44,19 @@ bool Timer::refresh() {
         return false;
     }
     manager_->timers_.erase(it);
-    expire_ = GetCurrentTime() + interval_;
+    expire_ = GetCurrentMs() + interval_;
     manager_->timers_.insert(shared_from_this());
     return true;
 }
 
-bool Timer::reset(int64_t interval, bool from_now) {
-    if (interval_ == interval && !from_now) {
+bool Timer::reset(int64_t interval, bool fromNow) {
+    if (interval_ == interval && !fromNow) {
         return true;
     }
     MutexGuard lock(manager_->mutex_);
     Timer::SPtr timer = shared_from_this();
-    Timer::SPtr front_timer;
-    bool at_front;
+    Timer::SPtr frontTimer;
+    bool atFront;
     if (!func_) {
         return false;
     }
@@ -66,28 +66,21 @@ bool Timer::reset(int64_t interval, bool from_now) {
     }
     manager_->timers_.erase(it);
     int64_t start = 0;
-    if (from_now) {
-        start = GetCurrentTime();
+    if (fromNow) {
+        start = GetCurrentMs();
     } else {
-        start = expire_ - interval_; //上一次超时时间
+        start = expire_ - interval_;
     }
     interval_ = interval;
     expire_ = start + interval_;
     manager_->timers_.insert(timer);
-    //如果at_front为真，那么释放写锁后就会通知iomanager重新获取最近超时时间
-    //need_notify_防止多个timer调用reset之后at_front都为真，然后同时通知
-    //如前一个timer调用reset通知iomanager，后一个更近的timer也也用reset
-    //但这两个onTimerInsertAtFront都会调用getExpire获取最近时间，实际做的是一样的动作
-    //所以在调用getExpire前，应该只有一个timer调用reset之后能通知iomanager
-    at_front = (timer == *manager_->timers_.begin()) && !manager_->need_notify_;
-    if (at_front) {
-        manager_->need_notify_ = true;
-    }
 
-    //timer更新为最近超时时间
-    if (at_front) {
+    atFront = (timer == *manager_->timers_.begin());
+    if (atFront) {
+        manager_->needNotify_ = true;
         manager_->timerInsertAtFront();
     }
+
     return true;
 }
 
@@ -120,14 +113,13 @@ TimeManager::~TimeManager() {
 
 Timer::SPtr TimeManager::addTimer(int64_t interval, std::function<void()> func,
                                   bool recursive) {
-    bool at_front;
+    bool atFront;
     Timer::SPtr timer(new Timer(interval, func, recursive, this));
     MutexGuard lock(mutex_);
     auto it = timers_.insert(timer).first;
-    at_front = (it == timers_.begin());
+    atFront = (it == timers_.begin());
 
-    // 比原来的超时时间更近，唤醒线程重新设置epoll_wait的超时时间
-    if (at_front) {
+    if (atFront) {
         timerInsertAtFront();
     }
     return timer;
@@ -142,53 +134,51 @@ static void OnTimer(std::weak_ptr<void> weak_cond, std::function<void()> func) {
 
 Timer::SPtr TimeManager::addConditonTimer(int64_t interval, 
                                           std::function<void()> func,
-                                          std::weak_ptr<void> weak_cond,
+                                          std::weak_ptr<void> weakCond,
                                           bool recursive) {
-    return addTimer(interval, std::bind(&OnTimer, weak_cond, func), recursive);
+    return addTimer(interval, std::bind(&OnTimer, weakCond, func), recursive);
 }
 
 int64_t TimeManager::getExpire() {
     MutexGuard lock(mutex_);
-    need_notify_ = false;
+    needNotify_ = false;
     if (timers_.empty()) {
         return -1;
     }
 
-    const Timer::SPtr& last_expire = *timers_.begin();
-    int64_t now = GetCurrentTime();
-    if (now > last_expire->expire_) {
+    const Timer::SPtr& lasestExpire = *timers_.begin();
+    int64_t now = GetCurrentMs();
+    if (now > lasestExpire->expire_) {
         return 0;
     } else {
-        return last_expire->expire_ - now;
+        return lasestExpire->expire_ - now;
     }
 }
 
-//TODO: 能不能在遍历时加入超时回调
 void TimeManager::expiredFunctions(std::vector<std::function<void()> >& expired_funcs) {
     MutexGuard lock(mutex_);
     if (timers_.empty()) {
         return;
     }
 
-    int64_t now = GetCurrentTime();
-    std::vector<Timer::SPtr> expired_timers;
+    int64_t now = GetCurrentMs();
+    std::vector<Timer::SPtr> expiredTimers;
     Timer::SPtr now_timer(new Timer(now));
     auto it = timers_.lower_bound(now_timer);
 
     while (it != timers_.end() && (*it)->expire_ == now) {
         ++it;
     }
-    expired_timers.insert(expired_timers.begin(), timers_.begin(), it);
+    expiredTimers.insert(expiredTimers.begin(), timers_.begin(), it);
     timers_.erase(timers_.begin(), it);
-    expired_funcs.reserve(expired_timers.size());
+    expired_funcs.reserve(expiredTimers.size());
 
-    for (auto& timer : expired_timers) {
+    for (auto& timer : expiredTimers) {
         expired_funcs.push_back(timer->func_);
         if (timer->recursive_) {
             timer->expire_ = now + timer->interval_;
             timers_.insert(timer);
         } else {
-            //防止再进入cancel函数清除timer
             timer->func_ = nullptr;
         }
     }
@@ -200,4 +190,4 @@ bool TimeManager::hasTimer() {
 }
 
 
-} //namespace reyao
+} // namespace reyao

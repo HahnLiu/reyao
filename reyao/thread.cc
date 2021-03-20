@@ -6,8 +6,8 @@
 
 namespace reyao {
 
-thread_local std::string t_thread_name = "MainThread";
-thread_local pid_t t_thread_id = 0;
+thread_local std::string t_threadName = "MainThread";
+thread_local pid_t t_threadId = 0;
 
 
 Thread::Thread(ThreadFunc cb, const std::string& name)
@@ -16,62 +16,62 @@ Thread::Thread(ThreadFunc cb, const std::string& name)
 	  cb_(cb),
 	  name_(name),
 	  latch_(1),
-	  started_(false),
+	  running_(false),
 	  joined_(false) {
 
 }
 
 Thread::~Thread() {
-	if (started_ && !joined_) {
+	if (running_ && !joined_) {
 		pthread_detach(tid_);
 	}
 }
 
 void Thread::SetThreadName(const std::string& name) {
-	t_thread_name = name;
+	t_threadName = name;
 }
 
 const std::string& Thread::GetThreadName() {
-	return t_thread_name;
+	return t_threadName;
 }
 
 pid_t Thread::GetThreadId() {
-	if (t_thread_id == 0) {
-		t_thread_id = syscall(SYS_gettid);
+	if (t_threadId == 0) {
+		t_threadId = syscall(SYS_gettid);
 	}
-	return t_thread_id;
+	return t_threadId;
 }
 
 void* Thread::RunThread(void* args) {
 	Thread* th = (Thread*)args;
-	t_thread_id = GetThreadId();
-	th->id_ = t_thread_id;
-	t_thread_name = th->name_;
-	pthread_setname_np(pthread_self(), th->name_.c_str()); //FIXME:
+	t_threadId = GetThreadId();
+	th->id_ = t_threadId;
+	t_threadName = th->name_;
+	pthread_setname_np(pthread_self(), th->name_.c_str());
 	th->latch_.countDown();
 	th->cb_();
 	return static_cast<void*>(0);
 }
 
 void Thread::start() {
-	if (!started_) {
-		started_ = true;
+	if (!running_) {
+		running_ = true;
 		if (pthread_create(&tid_, NULL, &Thread::RunThread, this)) {	
-			started_ = false;
+			running_ = false;
 			LOG_ERROR << "Thread start error=" << strerror(errno);
 		} else {
-			latch_.wait(); //等待线程启动再返回
+			latch_.wait();
 		}
 	}
 }
 
 void Thread::join() {
-	if (started_ && !joined_) {
+	if (running_ && !joined_) {
 		pthread_join(tid_, NULL);
 		joined_  = true;
-		started_ = false;
+		running_ = false;
 	}
 }
 
 
-} //namespace reyao
+} // namespace reyao
