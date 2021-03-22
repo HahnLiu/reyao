@@ -194,7 +194,7 @@ glibc 提供一种编译参数，用于在函数调用时插入一段检测代�
 
 - 共享栈
 
-libco 的协程栈实现采用共享栈，具体实现参考：https://www.zhihu.com/question/52193579的钟宇腾回答。
+libco 的协程栈实现采用共享栈，具体实现参考：https://www.zhihu.com/question/52193579 的钟宇腾回答。
 
 即协程有一个私有栈空间，可以动态变化：
 
@@ -533,4 +533,8 @@ https://github.com/sylar-yin/sylar
 https://github.com/chenshuo/muduo
 
 https://github.com/gatsbyd/melon
+
+https://github.com/Tencent/phxrpc
+
+https://github.com/Tencent/libco
 
