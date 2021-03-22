@@ -42,8 +42,7 @@ cd reyao
 另一个问题是，如何保证日志线程的创建和摧毁的时机不会影响日志的正常写入？
 
 - AsyncLog 对象负责后端线程的启动和日志的收集，所以在构造函数中启动线程时，应该同步等待线程启动，这个问题可以用线程同步解决。
-- 最初版本的后台线程只是检测运行标志 running_，考虑到 AsyncLog 对象析构时不应该再有前端写入日志，这时如果后端正在数据落盘，然后检查标志退出，这时不再进入循环就会导致数据丢失，所以 AsyncLog 对象退出时应该再给后端一个机会写缓冲区数据：
-  - 加入预退出标志，AsyncLog对象析构时先设置预退出标志 exit_ 然后通知后端，并等待后端线程的退出。后端线程下一次进入循环时发现 exit_ 标志，将 running_ 标志设置位 false，然后进行最后一次缓冲区的写入，进入下次循环时 running_ 为 false，退出。
+- 最初版本的后台线程只是检测运行标志 running_，考虑到 AsyncLog 对象析构时不应该再有前端写入日志，这时如果后端正在数据落盘，然后检查标志退出，这时不再进入循环就会导致数据丢失，所以 AsyncLog 对象退出时应该再给后端一个机会写缓冲区数据：加入预退出标志，AsyncLog对象析构时先设置预退出标志 exit_ 然后通知后端，并等待后端线程的退出。后端线程下一次进入循环时发现 exit_ 标志，将 running_ 标志设置位 false，然后进行最后一次缓冲区的写入，进入下次循环时 running_ 为 false，退出。
 
 ### 吞吐量测试
 
@@ -270,14 +269,13 @@ struct timer_info {
     int cancelled = 0;
 };
 ```
-首先创建一个timer_info 的智能指针，然后将其 weak_ptr 传给定时器。如果在超时前可以读写，那么 epoll 会先将协程放入调度器中先调度，协程切换回来后发现会先取消定时事件，然后检查 weak_ptr 中的 cancelled 标志。之所以设置成 weak_ptr ，是因为定时器统一由 Scheduler 管理，假设一个 fd 在线程 A 的 epoll 中等待，在超时时间时读写事件来，此时线程 B 刚好也从 epoll 唤醒，线程 B 抢先拿到了锁，从 Scheduler 中取出所有超时事件。随后线程 A 将所有触发的协程加入任务队列，此时协程会取消 timer 失败，然后退出。随后超时事件被调度，它要检查一个已退出协程的局部变量，此时是危险行为。所以为了避免这种小概率事件，用 weak_ptr 来避免两个线程分别处理读写协程和超时事件。
+首先创建一个 timer_info 的智能指针，然后将其 weak_ptr 传给定时器。如果在超时前可以读写，那么 epoll 会先将协程放入调度器中先调度，协程切换回来后发现会先取消定时事件，然后检查 weak_ptr 中的 cancelled 标志。之所以设置成 weak_ptr ，是因为定时器统一由 Scheduler 管理，假设一个 fd 在线程 A 的 epoll 中等待，在超时时间时读写事件来，此时线程 B 刚好也从 epoll 唤醒，线程 B 抢先拿到了锁，从 Scheduler 中取出所有超时事件。随后线程 A 将所有触发的协程加入任务队列，此时协程会取消 timer 失败，然后退出。随后超时事件被调度，它要检查一个已退出协程的局部变量，此时是危险行为。所以为了避免这种小概率事件，用 weak_ptr 来避免两个线程分别处理读写协程和超时事件。
 
 有了定时事件的管理，还可以 hook connect，设置超时时间。
 
 - 用户设置非阻塞
 
 正常的非阻塞行为应该是立刻返回，在 FdContext 中添加了 user_non_block 标志，如果用户主动调用 fnctl 或 ioctl 设置非阻塞，就修改 user_non_block 标志。这样在读写失败时不会交给 epoll 等待，而是直接返回，以模拟其原来的行为。
-
 
 ## Http 解析
 
@@ -339,15 +337,12 @@ enum ParseChunkState {
 
 ### GET请求
 
-get 请求可以请求服务器上的资源，项目采用 ServletDispatch 对请求资源进行单独处理。
-
-ServletDispatch 根据请求的 path 查找相应的 Servlet 进行，Servlet 封装了 path 和对应的 handle 处理函数，handle 函数进行请求接收和发送响应
-ServletDispatch 先尝试精确匹配，如果找不到再进行模糊匹配
-
-模糊匹配用的是 fnmatch：int fnmatch(const char *pattern, const char *string, int flags);
+get 请求可以请求服务器上的资源，项目采用 ServletDispatch 对请求资源进行单独处理。ServletDispatch 根据请求的 path 查找相应的 Servlet 进行，Servlet 封装了 path 和对应的 handle 处理函数，handle 函数进行请求接收和发送响应。ServletDispatch 先尝试精确匹配，如果找不到再进行模糊匹配。
 
 如 pattern 是 "/file1"，而 string 是 "file1/file2"，这时找不到 string ，就会匹配到 pattern 上。
-
+```c
+int fnmatch(const char *pattern, const char *string, int flags);
+```
 
 ### 压测
 与 muduo 进行了 echo hello 的吞吐量测试，muduo 与其他网络库的性能做过对比：https://blog.csdn.net/qq_41453285/article/details/107018098
@@ -362,7 +357,7 @@ muduo 长连接
 
 muduo 长连接下当线程数等于1或4时，工作线程的负载为99%，连接线程负载为0%。8个线程时工作线程负载在70%到95%之间。且并发数大于500时出现异常连接，看日志发现 accept ：too many open file 和 TcpConnection error：broken pipe or RST。
 
-reyao 长连接
+本项目长连接
 
 | 线程数 |  10   |  100   |  500   |  1000  |
 | :----: | :---: | :----: | :----: | :----: |
@@ -370,11 +365,11 @@ reyao 长连接
 |   4    | 92747 | 91210  | 91509  | 99340  |
 |   8    | 66523 | 142304 | 141328 | 157669 |
 
-reyao 长连接下当线程数等于1或4时，工作线程的负载为99%，连接线程负载为0%，这一点与 muduo 一致。8个线程时工作线程负载平均值在90左右之间。4 个工作线程时，muduo 长连接的 QPS 高了~35%，八个线程时高了~70%。
+本项目长连接下当线程数等于1或4时，工作线程的负载为99%，连接线程负载为0%，这一点与 muduo 一致。8个线程时工作线程负载平均值在90左右之间。4 个工作线程时，muduo 长连接的 QPS 高了~35%，八个线程时高了~70%。
 
 分析原因如下：
 
-长连接时是一次性建立所有连接，然后不断往连接发请求。这时 sockfd 收到的数据是很多个请求加在一起， reyao 目前在处理 HTTP 请求时最多一次读 4 k 数据到缓冲区，而 muduo 在读 sockfd 会一次读 16 k 数据，读出来的数据先放到 TcpConnection 的 Buffer 中（1 k），多余的直接放在栈中的 extrabuf，然后在对 Buffer 扩容。因此 muduo 每一读了 4 倍的数据量，系统调用的次数远少于 reyao，因此在长连接时性能会高很多。这一点 muduo 在与 libevent 对比时也指出过。
+长连接时是一次性建立所有连接，然后不断往连接发请求。这时 sockfd 收到的数据是很多个请求加在一起， 本项目目前在处理 HTTP 请求时最多一次读 4k 数据到缓冲区，而 muduo 在读 sockfd 会一次读 16 k 数据，读出来的数据先放到 TcpConnection 的 Buffer 中（1 k），多余的直接放在栈中的 extrabuf，然后在对 Buffer 扩容。因此 muduo 每一读了 4 倍的数据量，系统调用的次数远少于本项目，因此在长连接时性能会高很多。这一点 muduo 在与 libevent 对比时也指出过。
 
 muduo 短连接
 
@@ -384,7 +379,7 @@ muduo 短连接
 |   4    | 39779 | 56943 | 58788 | 65298 |
 |   8    | 21882 | 22895 | 24494 | 27114 |
 
-reyao 短连接
+本项目短连接
 
 | 线程数 |  10   |  100  |  500  | 1000  |
 | :----: | :---: | :---: | :---: | :---: |
@@ -392,25 +387,17 @@ reyao 短连接
 |   4    | 39720 | 47161 | 52085 | 58172 |
 |   8    | 32415 | 32678 | 36553 | 40705 |
 
-短连接测试时，在线程数为1时，QPS差距不大。线程数为4时，muduo 的 QPS 高了 12%。线程数为8时，reyao 的 QPS 略高一筹。观察 CPU 负载时发现，muduo 4个线程时 CPU 负载为 92%，8个线程时负载为42%。reyao 4个线程时负载为87%，8个线程时负载为43~45%。
+短连接测试时，在线程数为1时，QPS差距不大。线程数为4时，muduo 的 QPS 高了 12%。线程数为8时，本项目的 QPS 略高一筹。观察 CPU 负载时发现，muduo 4个线程时 CPU 负载为 92%，8个线程时负载为42%。reyao 4个线程时负载为87%，8个线程时负载为43~45%。
 
 性能分析：
 
-muduo 采用 LT 模式，且 listenfd 每次事件到来时只 accept 一次就返回，当并发请求较多时，会频繁的 epoll_wait 而消耗大量时间，并发量1000时观察 CPU 负载时发现，muduo 的连接线程的负载一直为 95% 以上。而 reyao 采用 ET 模式，每次有新的请求到来，都会一直读直到 EAGAIN，所以每次 accept 的请求比较多，reyao 的连接线程负载为 75~80%。
+muduo 采用 LT 模式，且 listenfd 每次事件到来时只 accept 一次就返回，当并发请求较多时，会频繁的 epoll_wait 而消耗大量时间，并发量1000时观察 CPU 负载时发现，muduo 的连接线程的负载一直为 95% 以上。而本项目采用 ET 模式，每次有新的请求到来，都会一直读直到 EAGAIN，所以每次 accept 的请求比较多，reyao 的连接线程负载为 75~80%。
 
-muduo 采用回调的方式处理读写事件，效率较高；而 reyao 在处理不同 sockfd 时需要协程切换，要从 Co1 -> mainCo -> Co2 两次切换，虽然没有陷入内核，但两次保存寄存器和两次恢复寄存器的操作还是拖累了表现。且 linux 的 getcontext 在保存寄存器时还做了额外操作（信号屏蔽处理），性能并不是很好。phxrpc 对比过基于 ucontext 与基于 boost 的网络请求性能测试（https://github.com/Tencent/phxrpc）。
+muduo 采用回调的方式处理读写事件，效率较高；而本项目在处理不同 sockfd 时需要协程切换，要从 Co1 -> mainCo -> Co2 两次切换，虽然没有陷入内核，但两次保存寄存器和两次恢复寄存器的操作还是拖累了表现。且 linux 的 getcontext 在保存寄存器时还做了额外操作（信号屏蔽处理），性能并不是很好。phxrpc 对比过基于 ucontext 与基于 boost 的网络请求性能测试（https://github.com/Tencent/phxrpc）。
 
 
 ## RPC 
-rpc 调用就是客户端将方法名 参数名 参数值等内容发送给服务端，由服务端进行方法调用。
-
-由于传输层传输的二进制串，所以需要将客户端中的对象转化为二进制格式传给服务端，而服务端要将二进制格式转化为对象，这就是序列化和反序列化的过程。
-
-但是 C++ 并没有反射的机制，不能在运行时通过类型名字节生成类的对象并调用类的方法。
-
-当然有一些简单的方法，如建立一个 map，key 为 类型名，value 是一个回调，分配一个对象。然后用宏包装一下，就可以只传递类型名加入将回调加到 map 中。
-
-而更通用的做法是使用 IDL（interface description language），可以让通信双方对通信内容进行约定。IDL 最大的好处是平台无关，它依赖于 IDL 编译器，将 IDL 文件生成不同语言对于的库。
+rpc 调用就是客户端将方法名 参数名 参数值等内容发送给服务端，由服务端进行方法调用。由于传输层传输的二进制串，所以需要将客户端中的对象转化为二进制格式传给服务端，而服务端要将二进制格式转化为对象，这就是序列化和反序列化的过程。通用的做法是使用 IDL（interface description language），可以让通信双方对通信内容进行约定。IDL 最大的好处是平台无关，它依赖于 IDL 编译器，将 IDL 文件生成不同语言对于的库。
 
 protobuf 使用：
 
@@ -455,8 +442,6 @@ const Descriptor* descriptor = DescriptorPool::generated_pool()->FindMessageType
 const Descrpitor descriptor = fileDescriptor->FindMessageTypeByName(typeName);
 ```
 
-
-
 获取 Message 的 Desrciptor 后，可以获取其默认实例，这时每个 Message Type 生成头文件和源代码之后都会有的。
 
 ```cpp
@@ -468,11 +453,9 @@ const Message* prototype = MessageFactory::generated_factory()->GetPrototype(des
 ```cpp
 Message* msg = prototype->New();
 ```
-
 获得实例后，便可以通过 set get 方法读写该对象。同时这个对象是动态分配的，最好用 shared_ptr 管理。
 
 Rpc 注册：
-
 RpcServer 提供 registerRpcHandler 注册 Message 对象的调用方法，用模板函数实现，模板为一个 Message Type，接收一个对应类型的回调，生成一个对应的RpcCallBack<MessageType> 实例，其中保存了回调函数。当 server 收到 Message 对象时，通过查找类型的 Descriptor 找到对应的 RpcCallBack 实例，调用其回调得到一个 Message 对象发送给调用方。
 
 ```cpp
@@ -509,7 +492,6 @@ private:
 ```
 
 Rpc 请求：
-
 RpcClient 可以通过 Call<T> 发起 rpc 请求，其形参接收一个 req Message，同时还要接收一个 rsp Message 的回调，用于接收到响应后执行响应的处理。
 
 ```cpp
