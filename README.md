@@ -526,3 +526,8 @@ template<typename RspMessage>
 bool Call(MessageSPtr req, typename TypeTraits<RspMessage>::ResponseHandler handler);
 ```
 
+Reference：
+https://github.com/sylar-yin/sylar
+https://github.com/chenshuo/muduo
+https://github.com/gatsbyd/melon
+
