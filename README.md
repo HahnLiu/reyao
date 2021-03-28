@@ -5,7 +5,7 @@
 
 ## 编译
 
-项目依赖于 protobuf 和 zlib，进入源目录下运行 auto_build.sh 即可将项目编译到 ./build/中
+项目依赖于 protobuf ，进入源目录下运行 auto_build.sh 即可将项目编译到 ./build/中
 
 ```bash
 cd reyao
