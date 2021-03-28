@@ -18,14 +18,12 @@ typedef std::shared_ptr<::google::protobuf::Message> MessageSPtr;
  name_len: 类型名长度
  name: 类型名
  payload: 数据
- checksum: 校验和
 */
 class ProtobufCodec {
 public:
     enum ErrorCode {
         kNoError = 0,
         kInvalidLength,
-        kChecksumError,
         kInvalidNameLength,
         kUnknownMessageType,
         kParseError,
@@ -57,8 +55,8 @@ private:
 
 
     const static int kHeaderLen = sizeof(int32_t);
-    // MessageHeader: nameLen + typeName + Checksum
-    const static int kMinMessageLen = kHeaderLen + 2 + kHeaderLen; 
+    // MessageHeader: nameLen + typeName
+    const static int kMinMessageLen = kHeaderLen + 2; 
     const static int kMaxMessageLen = 64 * 1024 * 1024;
 
     SocketStream ss_;

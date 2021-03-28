@@ -16,7 +16,7 @@ MessageSPtr Echo(std::shared_ptr<EchoRequest> req) {
 
 
 int main(int argc, char** argv) {
-    Scheduler sche(0);
+    Scheduler sche(1);
     sche.startAsync();
     auto addr = IPv4Address::CreateAddress("0.0.0.0", 9000);
     RpcServer server(&sche, addr);

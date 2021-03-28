@@ -26,10 +26,7 @@ void ProtobufCodec::serializeToByteArray(ByteArray& ba, MessageSPtr msg) {
     msg->SerializeWithCachedSizesToArray(buf);
     ba.setWritePos(ba.getWritePos() + byteSize);
 
-    int32_t checkSum = static_cast<int32_t>(adler32(1, reinterpret_cast<const Bytef*>(ba.peek()),
-                                                    static_cast<int>(ba.getReadSize())));
-    ba.writeInt32(checkSum);
-    assert(ba.getReadSize() == sizeof(nameLen) + nameLen + byteSize + sizeof(checkSum));
+    assert(ba.getReadSize() == sizeof(nameLen) + nameLen + byteSize);
     int32_t len = byteSwapOnLittleEndian(static_cast<int32_t>(ba.getReadSize()));
     ba.writePrepend(&len, sizeof(len));
 
@@ -83,20 +80,10 @@ int32_t asInt32(const char* buf) {
 }
 
 MessageSPtr ProtobufCodec::Parse(ByteArray& ba, int len, ErrMsg::SPtr errMsg) {
-    MessageSPtr msg;
-    int32_t expectChecksum = asInt32(ba.peek() + len - kHeaderLen);
-    int32_t checksum = static_cast<int32_t>(::adler32(1, reinterpret_cast<const Bytef*>(ba.peek()), 
-                                             static_cast<int>(len - kHeaderLen)));
-    
-    if (expectChecksum != checksum) {
-        errMsg->errcode = ErrorCode::kChecksumError;
-        errMsg->errstr = "checksum error checksum=" + std::to_string(checksum) + 
-                          "expected_checksum=" + std::to_string(expectChecksum);
-        return msg;
-    }
-
     int32_t nameLen = ba.readInt32();
-    if (nameLen < 2 || nameLen > len - 2 * kHeaderLen) {
+
+    MessageSPtr msg;
+    if (nameLen < 2 || nameLen > len - kHeaderLen) {
         errMsg->errcode = ErrorCode::kInvalidNameLength;
         errMsg->errstr = "invalid name length = " + std::to_string(nameLen);
         return msg;
@@ -116,7 +103,7 @@ MessageSPtr ProtobufCodec::Parse(ByteArray& ba, int len, ErrMsg::SPtr errMsg) {
     }
 
     const char* payload = ba.peek();
-    int32_t payloadLen = len - 2 * kHeaderLen - nameLen;
+    int32_t payloadLen = len - kHeaderLen - nameLen;
     if (!msg->ParseFromArray(payload, payloadLen)) {
         errMsg->errcode = ErrorCode::kParseError;
         errMsg->errstr = "message " + name + " parse error";
