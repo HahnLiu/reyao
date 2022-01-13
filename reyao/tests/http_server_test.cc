@@ -1,4 +1,5 @@
 #include "reyao/http/http_server.h"
+#include "reyao/util.h"
 
 using namespace reyao;
 
@@ -28,7 +29,8 @@ using namespace reyao;
 // }
 
 int main(int argc, char** argv) {
-    g_logger->setLevel(LogLevel::WARN);
+    g_logger->setLevel(LogLevel::DEBUG);
+    // g_logger->setFileAppender();
     int num = 5;
      if (argc > 1) {
          num = atoi(argv[1]);
@@ -42,9 +44,17 @@ int main(int argc, char** argv) {
                                       HttpResponse* rsp,
                                       const HttpSession& session) {
         rsp->addHeader("Server", "Reyao");
-        rsp->addHeader("Conetnt-Type", "text/plain");
+        rsp->addHeader("Content-Type", "text/plain");
         rsp->setBody("hello, world!");
         return 0;           
+    });
+    dispatch->addServlet("/", [](const HttpRequest& req,
+			    	 HttpResponse* rsp,
+				 const HttpSession& session) {
+	    rsp->addHeader("Server", "Reyao");
+	    rsp->addHeader("Content-Type", "text/html");
+        rsp->setBody(reyao::ReadFile("/home/crash/server-cfg/readme.html"));
+		return 0;
     });
 
     server.start();

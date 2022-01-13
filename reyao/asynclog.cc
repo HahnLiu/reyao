@@ -175,7 +175,7 @@ void AsyncLog::start()
 void AsyncLog::stop() {
     exit_ = true;
     cond_.notify();
-    thread_.join();
+    thread_.detach();
 }
 
 } // namespace reyao

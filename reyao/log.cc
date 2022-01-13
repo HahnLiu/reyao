@@ -251,7 +251,7 @@ std::string LogFormatter::format(const LogData& data) {
 Logger::Logger()
     : level_(LogLevel::DEBUG),
       formatter_(std::make_shared<LogFormatter>(s_defaultLogFormat)), 
-      appender_(std::make_shared<ConsoleAppender>()) {
+      appender_(std::make_shared<FileAppender>()) {
 
 }
 

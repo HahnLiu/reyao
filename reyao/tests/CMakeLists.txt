@@ -43,4 +43,4 @@ target_link_libraries(echo_client ${LIBS})
 add_executable(condition_test condition_test.cc)
 target_link_libraries(condition_test ${LIBS})
 
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)  #项目的可执行文件输出目录
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin/tests)  #项目的可执行文件输出目录

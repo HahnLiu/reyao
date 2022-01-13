@@ -2,6 +2,8 @@
 #include "reyao/log.h"
 
 #include <sys/time.h>
+#include <fstream>
+#include <sstream>
 
 namespace reyao {
 
@@ -25,6 +27,21 @@ int HexToDec(std::string hex) {
         }
     }
     return res;
+}
+
+std::string ReadFile(const std::string& pathname) {
+    std::ifstream in(pathname, std::ios::in);
+    if (!in.is_open()) {
+        LOG_ERROR << "open " << pathname << "error: " << strerror(errno);
+        return "";
+    }
+    std::stringstream buf;
+    std::string line;
+    while (getline(in, line)) {
+        buf << line;
+    }
+    in.close();
+    return buf.str();
 }
 
 } // namespace reyao

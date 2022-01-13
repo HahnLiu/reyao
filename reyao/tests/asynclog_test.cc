@@ -22,7 +22,7 @@ void asynclog_test() {
     {
         Thread::SPtr t(new Thread([]() {
             char buf[] = "helloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworld";
-            for (int i = 0; i < 1000000; i++) {
+            for (int i = 0; i < 1000; i++) {
                 logger.append(buf, strlen(buf));
                 total += 100;
             }
@@ -39,6 +39,7 @@ void asynclog_test() {
 	double sec = (e.tv_sec - s.tv_sec) + (e.tv_usec - s.tv_usec) / 1000000.0;
 	double speed = total / sec / 1024 / 1024;
 	std::cout << "time=" << sec << "s " << "total=" << (total / 1024 / 1024) << "mb " << "speed=" << speed << "mb/s" << "\n";
+    logger.stop();
 }
 
 int main(int argc, char** argv) {   

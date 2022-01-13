@@ -21,4 +21,5 @@ if (Protobuf_FOUND)
 endif()
 
 add_subdirectory(reyao)
+add_subdirectory(cmd)
 

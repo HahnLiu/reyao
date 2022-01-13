@@ -7,12 +7,16 @@ file(GLOB reyao_rpc_headers ${PROJECT_SOURCE_DIR}/reyao/rpc/*.h)
 
 add_library(reyao SHARED ${LIB_SRC})
 
+# set(variable value CACHE INTERNAL docstring )这种
 SET(LIBS 
     reyao
     pthread
     dl
     ${PROTOBUF_LIBRARIES}
     ${ZLIB_LIBRARIES}
+    CACHE
+    INTERNAL 
+    "reyao lib"
 )
 
 add_subdirectory(tests)

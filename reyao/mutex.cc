@@ -39,6 +39,7 @@ Condition::~Condition() {
 }
 
 void Condition::wait() { 
+
     pthread_cond_wait(&cond_, mutex_.getMutex());
 }
 
@@ -52,7 +53,6 @@ bool Condition::waitForSeconds(int seconds) {
 
     abstime.tv_sec += static_cast<time_t>((abstime.tv_nsec + nanoseconds) / kNanoSecondsPerSecond);
     abstime.tv_nsec = static_cast<long>((abstime.tv_nsec + nanoseconds) % kNanoSecondsPerSecond);
-    MutexGuard lock(mutex_);
     return ETIMEDOUT == pthread_cond_timedwait(&cond_, mutex_.getMutex(), &abstime);
 }
 

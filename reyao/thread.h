@@ -26,6 +26,7 @@ public:
 
 	void start();
 	void join();
+	void detach() { pthread_detach(tid_); }
 	pid_t getId() const { return id_;}
 	bool isStart() const { return running_; }
 
